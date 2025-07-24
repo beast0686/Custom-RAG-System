@@ -1,2 +1,2 @@
-# Qunatum-RAG-System
-Qunatum RAG System
+# Classical-RAG-System
+Classical RAG System
