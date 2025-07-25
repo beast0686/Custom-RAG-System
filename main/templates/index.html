@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Search</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            width: 100%;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            border-bottom: 1px solid #dddfe2;
+            z-index: 10;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #1877f2;
+        }
+        .search-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        #search-input {
+            width: 500px;
+            padding: 12px 16px;
+            border: 1px solid #dddfe2;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+        }
+        #search-input:focus {
+            border-color: #1877f2;
+            box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+        }
+        #search-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            background-color: #1877f2;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #search-button:hover {
+            background-color: #166fe5;
+        }
+        #graph-container {
+            width: 100%;
+            flex-grow: 1;
+            position: relative;
+        }
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #1877f2;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        #legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .node text {
+            pointer-events: none;
+            font-size: 10px;
+            fill: #333;
+            text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+        }
+        .link {
+            stroke-opacity: 0.6;
+        }
+        .link-text {
+            font-size: 8px;
+            fill: #555;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Knowledge Graph Vector Search</h1>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Search for anything...">
+        <button id="search-button">Search</button>
+    </div>
+
+    <div id="graph-container">
+        <div id="loader"></div>
+        <div id="legend"></div>
+        <svg width="100%" height="100%"></svg>
+    </div>
+
+    <script>
+        const searchButton = document.getElementById('search-button');
+        const searchInput = document.getElementById('search-input');
+        const loader = document.getElementById('loader');
+        const svg = d3.select("svg");
+        const width = svg.node().getBoundingClientRect().width;
+        const height = svg.node().getBoundingClientRect().height;
+
+        let simulation, link, node, linkText;
+        let g; // The main container for zoomable elements
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // --- Zoom Functionality ---
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        function initializeGraph() {
+            svg.selectAll("*").remove(); // Clear previous graph
+
+            // Create a container <g> element for all graph elements
+            g = svg.append("g");
+
+            simulation = d3.forceSimulation()
+                .force("link", d3.forceLink().id(d => d.id).distance(120))
+                .force("charge", d3.forceManyBody().strength(-400))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+            // Append groups for links, nodes, and text to the main container 'g'
+            link = g.append("g")
+                .attr("class", "links")
+                .selectAll("line");
+
+            linkText = g.append("g")
+                .attr("class", "link-texts")
+                .selectAll("text");
+
+            node = g.append("g")
+                .attr("class", "nodes")
+                .selectAll("g");
+        }
+
+        function updateLegend(nodes) {
+            const legendContainer = d3.select("#legend");
+            legendContainer.html(""); // Clear old legend
+
+            const uniqueLabels = [...new Set(nodes.map(n => n.label))];
+
+            const legendItems = legendContainer.selectAll(".legend-item")
+                .data(uniqueLabels);
+
+            const legendEnter = legendItems.enter()
+                .append("div")
+                .attr("class", "legend-item");
+
+            legendEnter.append("div")
+                .attr("class", "legend-color")
+                .style("background-color", d => color(d));
+
+            legendEnter.append("span")
+                .text(d => d);
+        }
+
+        function updateGraph(graph) {
+            initializeGraph();
+            updateLegend(graph.nodes);
+
+            // Update links
+            link = link.data(graph.links, d => `${d.source.id}-${d.target.id}`);
+            link.exit().remove();
+            const linkEnter = link.enter().append("line")
+                .attr("class", "link")
+                .style("stroke", "#999")
+                .style("stroke-width", 1.5); // Make links visible
+            link = linkEnter.merge(link);
+
+            // Update link text
+            linkText = linkText.data(graph.links, d => `${d.source.id}-${d.target.id}`);
+            linkText.exit().remove();
+            const linkTextEnter = linkText.enter().append("text")
+                .attr("class", "link-text")
+                .text(d => d.type);
+            linkText = linkTextEnter.merge(linkText);
+
+            // Update nodes
+            node = node.data(graph.nodes, d => d.id);
+            node.exit().remove();
+            const nodeEnter = node.enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            nodeEnter.append("circle")
+                .attr("r", d => d.label === 'Document' ? 12 : 8)
+                .style("fill", d => color(d.label))
+                .style("stroke", "#fff")
+                .style("stroke-width", 1.5);
+
+            nodeEnter.append("text")
+                .attr("x", 15)
+                .attr("y", 4)
+                .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+
+            node = nodeEnter.merge(node);
+
+            // Restart the simulation with new data
+            simulation.nodes(graph.nodes).on("tick", ticked);
+            simulation.force("link").links(graph.links);
+            simulation.alpha(1).restart();
+        }
+
+        function ticked() {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+            linkText
+                .attr("x", d => (d.source.x + d.target.x) / 2)
+                .attr("y", d => (d.source.y + d.target.y) / 2);
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        async function handleSearch() {
+            const query = searchInput.value;
+            if (!query) return;
+
+            loader.style.display = 'block';
+            svg.style.visibility = 'hidden';
+            d3.select("#legend").html(""); // Clear legend on new search
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const graphData = await response.json();
+
+                if (graphData.nodes.length === 0) {
+                    alert("No results found for your query.");
+                } else {
+                    updateGraph(graphData);
+                }
+
+            } catch (error) {
+                console.error('Error fetching graph data:', error);
+                alert('Failed to fetch graph data. See console for details.');
+            } finally {
+                loader.style.display = 'none';
+                svg.style.visibility = 'visible';
+            }
+        }
+
+        searchButton.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        // Initial setup
+        initializeGraph();
+
+    </script>
+
+</body>
+</html>
