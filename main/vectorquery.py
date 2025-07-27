@@ -13,7 +13,7 @@ collection = client[MONGO_DB][MONGO_COLLECTION]
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-sentence = "The future of artificial intelligence is promising."
+sentence = "ai is the future of technology"
 embedding_vector = model.encode(sentence, normalize_embeddings=True).tolist()
 
 pipeline = [

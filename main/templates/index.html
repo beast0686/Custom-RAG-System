@@ -1,346 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Graph Search</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f2f5;
-            color: #1c1e21;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        header {
-            width: 100%;
-            background-color: #ffffff;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-            border-bottom: 1px solid #dddfe2;
-            z-index: 10;
-        }
-        h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #1877f2;
-        }
-        .search-container {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            z-index: 10;
-        }
-        #search-input {
-            width: 500px;
-            padding: 12px 16px;
-            border: 1px solid #dddfe2;
-            border-radius: 24px;
-            font-size: 16px;
-            outline: none;
-            transition: all 0.2s ease-in-out;
-        }
-        #search-input:focus {
-            border-color: #1877f2;
-            box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
-        }
-        #search-button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 24px;
-            background-color: #1877f2;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        #search-button:hover {
-            background-color: #166fe5;
-        }
-        #graph-container {
-            width: 100%;
-            flex-grow: 1;
-            position: relative;
-        }
-        #loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 8px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 8px solid #1877f2;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            display: none; /* Hidden by default */
-        }
-        #legend {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            font-size: 12px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .legend-color {
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .node text {
-            pointer-events: none;
-            font-size: 10px;
-            fill: #333;
-            text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
-        }
-        .link {
-            stroke-opacity: 0.6;
-        }
-        .link-text {
-            font-size: 8px;
-            fill: #555;
-            pointer-events: none;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InsightGraph Explorer</title>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    /* [unchanged styles] */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #1a1a1a;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    h1, h2 {
+      color: #4CAF50;
+      font-weight: 300;
+      width: 100%;
+      max-width: 900px;
+      text-align: center;
+    }
+    h2 {
+      margin-top: 40px;
+      font-size: 1.2em;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+    #query-form {
+      display: flex;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+    #query-input {
+      flex-grow: 1;
+      padding: 12px 15px;
+      border: 1px solid #444;
+      border-radius: 20px 0 0 20px;
+      background-color: #2a2a2a;
+      color: #f0f0f0;
+      font-size: 16px;
+      outline: none;
+    }
+    #submit-btn {
+      padding: 12px 20px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 0 20px 20px 0;
+    }
+    #docs-container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .doc-card {
+      background-color: #282828;
+      border: 1px solid #333;
+      border-left: 4px solid #4CAF50;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .doc-card-header {
+      font-weight: bold;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+    .doc-card-content {
+      font-size: 0.9em;
+      color: #bbb;
+      line-height: 1.5;
+    }
+    #graph-container {
+      width: 100%;
+      max-width: 900px;
+      height: 500px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background-color: #222;
+      margin-top: 20px;
+    }
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #4CAF50;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #legend {
+      max-width: 900px;
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 0.9em;
+      color: #ccc;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-color {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
 
-    <header>
-        <h1>Knowledge Graph Vector Search</h1>
-    </header>
+<h1>✨ InsightGraph Explorer</h1>
 
-    <div class="search-container">
-        <input type="text" id="search-input" placeholder="Search for anything...">
-        <button id="search-button">Search</button>
-    </div>
+<form id="query-form">
+  <input type="text" id="query-input" placeholder="Ask about your documents..." autocomplete="off">
+  <button type="submit" id="submit-btn">Generate</button>
+</form>
 
-    <div id="graph-container">
-        <div id="loader"></div>
-        <div id="legend"></div>
-        <svg width="100%" height="100%"></svg>
-    </div>
+<div class="loader" id="loader"></div>
+<div id="docs-container"></div>
 
-    <script>
-        const searchButton = document.getElementById('search-button');
-        const searchInput = document.getElementById('search-input');
-        const loader = document.getElementById('loader');
-        const svg = d3.select("svg");
-        const width = svg.node().getBoundingClientRect().width;
-        const height = svg.node().getBoundingClientRect().height;
+<div id="graph-section" style="display:none; width: 100%; max-width: 900px;">
+  <h2>Knowledge Graph</h2>
+  <div id="graph-container"></div>
+  <div id="legend">
+    <div class="legend-item"><span class="legend-color" style="background:#FF6347"></span> Document</div>
+    <div class="legend-item"><span class="legend-color" style="background:#6495ED"></span> Person</div>
+    <div class="legend-item"><span class="legend-color" style="background:#3CB371"></span> Organization</div>
+    <div class="legend-item"><span class="legend-color" style="background:#FFD700"></span> Location</div>
+    <div class="legend-item"><span class="legend-color" style="background:#9370DB"></span> Concept</div>
+    <div class="legend-item"><span class="legend-color" style="background:#48D1CC"></span> Technology</div>
+  </div>
+</div>
 
-        let simulation, link, node, linkText;
-        let g; // The main container for zoomable elements
+<script>
+  const form = document.getElementById('query-form');
+  const input = document.getElementById('query-input');
+  const loader = document.getElementById('loader');
+  const docsContainer = document.getElementById('docs-container');
+  const graphSection = document.getElementById('graph-section');
+  const graphContainer = document.getElementById('graph-container');
+  let graphSessionId = null;
 
-        const color = d3.scaleOrdinal(d3.schemeCategory10);
+  window.addEventListener('beforeunload', () => {
+    if (graphSessionId) navigator.sendBeacon(`/cleanup/${graphSessionId}`, '');
+  });
 
-        // --- Zoom Functionality ---
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 4])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
-
-        svg.call(zoom);
-
-        function initializeGraph() {
-            svg.selectAll("*").remove(); // Clear previous graph
-
-            // Create a container <g> element for all graph elements
-            g = svg.append("g");
-
-            simulation = d3.forceSimulation()
-                .force("link", d3.forceLink().id(d => d.id).distance(120))
-                .force("charge", d3.forceManyBody().strength(-400))
-                .force("center", d3.forceCenter(width / 2, height / 2));
-
-            // Append groups for links, nodes, and text to the main container 'g'
-            link = g.append("g")
-                .attr("class", "links")
-                .selectAll("line");
-
-            linkText = g.append("g")
-                .attr("class", "link-texts")
-                .selectAll("text");
-
-            node = g.append("g")
-                .attr("class", "nodes")
-                .selectAll("g");
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const queryText = input.value.trim();
+    if (!queryText) return;
+    if (graphSessionId) {
+        try {
+            await fetch(`/cleanup/${graphSessionId}`, { method: 'POST' });
+        } catch (cleanupErr) {
+            console.warn('Cleanup failed:', cleanupErr);
         }
+        graphSessionId = null;
+    }
+    loader.style.display = 'block';
+    docsContainer.innerHTML = '';
+    graphSection.style.display = 'none';
+    graphContainer.innerHTML = '';
 
-        function updateLegend(nodes) {
-            const legendContainer = d3.select("#legend");
-            legendContainer.html(""); // Clear old legend
+    try {
+      const response = await fetch('/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryText })
+      });
 
-            const uniqueLabels = [...new Set(nodes.map(n => n.label))];
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `HTTP error! Status: ${response.status}`);
+      }
 
-            const legendItems = legendContainer.selectAll(".legend-item")
-                .data(uniqueLabels);
+      const data = await response.json();
+      graphSessionId = data.session_id;
 
-            const legendEnter = legendItems.enter()
-                .append("div")
-                .attr("class", "legend-item");
-
-            legendEnter.append("div")
-                .attr("class", "legend-color")
-                .style("background-color", d => color(d));
-
-            legendEnter.append("span")
-                .text(d => d);
-        }
-
-        function updateGraph(graph) {
-            initializeGraph();
-            updateLegend(graph.nodes);
-
-            // Update links
-            link = link.data(graph.links, d => `${d.source.id}-${d.target.id}`);
-            link.exit().remove();
-            const linkEnter = link.enter().append("line")
-                .attr("class", "link")
-                .style("stroke", "#999")
-                .style("stroke-width", 1.5); // Make links visible
-            link = linkEnter.merge(link);
-
-            // Update link text
-            linkText = linkText.data(graph.links, d => `${d.source.id}-${d.target.id}`);
-            linkText.exit().remove();
-            const linkTextEnter = linkText.enter().append("text")
-                .attr("class", "link-text")
-                .text(d => d.type);
-            linkText = linkTextEnter.merge(linkText);
-
-            // Update nodes
-            node = node.data(graph.nodes, d => d.id);
-            node.exit().remove();
-            const nodeEnter = node.enter().append("g")
-                .attr("class", "node")
-                .call(d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged)
-                    .on("end", dragended));
-
-            nodeEnter.append("circle")
-                .attr("r", d => d.label === 'Document' ? 12 : 8)
-                .style("fill", d => color(d.label))
-                .style("stroke", "#fff")
-                .style("stroke-width", 1.5);
-
-            nodeEnter.append("text")
-                .attr("x", 15)
-                .attr("y", 4)
-                .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
-
-            node = nodeEnter.merge(node);
-
-            // Restart the simulation with new data
-            simulation.nodes(graph.nodes).on("tick", ticked);
-            simulation.force("link").links(graph.links);
-            simulation.alpha(1).restart();
-        }
-
-        function ticked() {
-            link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
-
-            node
-                .attr("transform", d => `translate(${d.x},${d.y})`);
-
-            linkText
-                .attr("x", d => (d.source.x + d.target.x) / 2)
-                .attr("y", d => (d.source.y + d.target.y) / 2);
-        }
-
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
-
-        async function handleSearch() {
-            const query = searchInput.value;
-            if (!query) return;
-
-            loader.style.display = 'block';
-            svg.style.visibility = 'hidden';
-            d3.select("#legend").html(""); // Clear legend on new search
-
-            try {
-                const response = await fetch('/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ query: query }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const graphData = await response.json();
-
-                if (graphData.nodes.length === 0) {
-                    alert("No results found for your query.");
-                } else {
-                    updateGraph(graphData);
-                }
-
-            } catch (error) {
-                console.error('Error fetching graph data:', error);
-                alert('Failed to fetch graph data. See console for details.');
-            } finally {
-                loader.style.display = 'none';
-                svg.style.visibility = 'visible';
-            }
-        }
-
-        searchButton.addEventListener('click', handleSearch);
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleSearch();
-            }
+      if (data.retrieved_docs?.length > 0) {
+        docsContainer.innerHTML = '<h2>Retrieved Documents</h2>';
+        data.retrieved_docs.forEach(doc => {
+          const card = document.createElement('div');
+          card.className = 'doc-card';
+          card.innerHTML = `
+              <div class="doc-card-header">Similarity Score: ${doc.score}</div>
+              <div class="doc-card-content">${doc.content_snippet}</div>
+          `;
+          docsContainer.appendChild(card);
         });
+      } else {
+        docsContainer.innerHTML = '<h2>No relevant documents found for this query.</h2>';
+      }
 
-        // Initial setup
-        initializeGraph();
+      if (data.nodes?.length > 0) {
+        graphSection.style.display = 'block';
+        renderGraph(data.nodes, data.edges);
+      } else if (data.retrieved_docs?.length > 0) {
+        graphSection.style.display = 'block';
+        graphContainer.innerHTML = '<p style="text-align:center;padding:20px;">Documents were found, but no entities could be extracted to build a graph.</p>';
+      }
 
-    </script>
+    } catch (error) {
+      console.error('Error:', error);
+      docsContainer.innerHTML = `<h2 style="color:#ff6b6b;">Error: ${error.message}</h2>`;
+    } finally {
+      loader.style.display = 'none';
+    }
+  });
 
+function renderGraph(rawNodes, rawEdges) {
+  const MAX_EDGES_PER_DOC = 6;
+  const docNodeIds = new Set(rawNodes.filter(n => n.group === 'document').map(n => n.id));
+  const edgeCountPerDoc = {};
+
+  const uniqueEdges = [];
+  const edgeMap = new Set();
+
+  rawEdges.forEach(edge => {
+    const key = `${edge.from}->${edge.to}->${edge.label}`;
+    if (edgeMap.has(key)) return;
+
+    const isFromDoc = docNodeIds.has(edge.from);
+    const isToDoc = docNodeIds.has(edge.to);
+    const docNode = isFromDoc ? edge.from : isToDoc ? edge.to : null;
+
+    if (docNode) {
+      edgeCountPerDoc[docNode] = (edgeCountPerDoc[docNode] || 0) + 1;
+      if (edgeCountPerDoc[docNode] > MAX_EDGES_PER_DOC) return;
+    }
+
+    uniqueEdges.push({
+      ...edge,
+      arrows: 'to',
+      label: edge.relation || edge.label || '',
+      font: { align: 'top' }
+    });
+
+    edgeMap.add(key);
+  });
+
+  const visibleNodeIds = new Set();
+  uniqueEdges.forEach(e => {
+    visibleNodeIds.add(e.from);
+    visibleNodeIds.add(e.to);
+  });
+
+  const visibleNodes = rawNodes.filter(n => visibleNodeIds.has(n.id));
+
+  const graphData = {
+    nodes: new vis.DataSet(visibleNodes.map(n => ({ ...n, shape: 'dot', size: 20 }))),
+    edges: new vis.DataSet(uniqueEdges)
+  };
+
+  const options = {
+    nodes: {
+      font: { size: 14, color: '#ffffff' },
+      borderWidth: 2
+    },
+    edges: {
+      width: 2,
+      color: { color: '#848484', highlight: '#4CAF50' },
+      smooth: {
+        type: 'dynamic'
+      }
+    },
+    physics: {
+      forceAtlas2Based: {
+        gravitationalConstant: -30,
+        centralGravity: 0.01,
+        springLength: 200,
+        springConstant: 0.04
+      },
+      solver: 'forceAtlas2Based',
+      timestep: 0.4,
+      stabilization: { iterations: 150 }
+    },
+    groups: {
+      document: { color: { background: '#FF6347', border: '#FF4500' }, shape: 'dot' },
+      Person: { color: { background: '#6495ED', border: '#4169E1' }, shape: 'dot' },
+      Organization: { color: { background: '#3CB371', border: '#2E8B57' }, shape: 'dot' },
+      Location: { color: { background: '#FFD700', border: '#FFA500' }, shape: 'dot' },
+      Concept: { color: { background: '#9370DB', border: '#8A2BE2' }, shape: 'dot' },
+      Technology: { color: { background: '#48D1CC', border: '#20B2AA' }, shape: 'dot' }
+    }
+  };
+
+  new vis.Network(graphContainer, graphData, options);
+}
+
+</script>
 </body>
 </html>
