@@ -3,410 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Classical RAG</title>
+  <title>Classical RAG System</title>
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #1a1a1a;
-      color: #f0f0f0;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-      position: relative;
-    }
-
-    #status-bar {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background-color: #2e7d32;
-      color: #ffffff;
-      padding: 6px 12px;
-      border-radius: 5px;
-      font-size: 0.9em;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-      z-index: 999;
-    }
-
-    h1, h2 {
-      color: #4CAF50;
-      font-weight: 300;
-      width: 100%;
-      max-width: 900px;
-      text-align: center;
-    }
-
-    h2 {
-      margin-top: 40px;
-      font-size: 1.2em;
-      border-bottom: 1px solid #333;
-      padding-bottom: 10px;
-    }
-
-    #query-form {
-      display: flex;
-      width: 100%;
-      max-width: 600px;
-      margin-bottom: 20px;
-    }
-
-    #query-input {
-      flex-grow: 1;
-      padding: 12px 15px;
-      border: 1px solid #444;
-      border-radius: 20px 0 0 20px;
-      background-color: #2a2a2a;
-      color: #f0f0f0;
-      font-size: 16px;
-      outline: none;
-    }
-
-    #submit-btn {
-      width: fit-content;
-      padding: 12px 30px;
-      margin: 0 auto; /* Center horizontally */
-    }
-
-    #docs-container {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .doc-card {
-      background-color: #282828;
-      border: 1px solid #333;
-      border-left: 4px solid #4CAF50;
-      padding: 15px;
-      border-radius: 5px;
-    }
-
-    .doc-card-header {
-      font-weight: bold;
-      color: #ccc;
-      margin-bottom: 10px;
-    }
-
-    .doc-card-content {
-      font-size: 0.9em;
-      color: #bbb;
-      line-height: 1.5;
-    }
-
-    .doc-card-reference {
-      margin-top: 10px;
-      font-size: 0.85em;
-    }
-
-    .doc-card-reference a {
-      color: #4CAF50;
-      text-decoration: underline;
-    }
-
-    #graph-container {
-      width: 100%;
-      max-width: 900px;
-      height: 500px;
-      border: 1px solid #333;
-      border-radius: 8px;
-      background-color: #222;
-      margin-top: 20px;
-    }
-
-    .loader {
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #4CAF50;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      display: none;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    #legend {
-      max-width: 900px;
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      font-size: 0.9em;
-      color: #ccc;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .legend-color {
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    #error-container {
-      max-width: 900px;
-      color: #ff6b6b;
-      margin-bottom: 20px;
-      text-align: center;
-      display: none;
-    }
-
-    #export-graph {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      margin-top: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      display: none;
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
 
-<div id="status-bar">29873 Records Strong!</div>
+<div id="status-bar">✨ 29,873 Records Ready</div>
 
 <h1>Classical RAG System</h1>
 
 <div id="error-container"></div>
 
-<form id="query-form" style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 700px; align-items: center;">
-  
-  <input type="text" id="query-input" placeholder="Ask about your documents..." autocomplete="off"
-    style="width: 70%; padding: 12px 15px; border: 1px solid #444; border-radius: 8px; background-color: #2a2a2a; color: #f0f0f0; font-size: 16px; outline: none;">
+<form id="query-form">
+  <div class="form-section">
+    <div class="input-container">
+      <input type="text" id="query-input" placeholder=" " autocomplete="off">
+      <label for="query-input" class="input-label">Ask about your documents...</label>
+    </div>
 
-  <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; width: 70%;">
-    <label for="k-slider" style="color: #ccc; font-size: 0.9em;">
-      Top K similar documents: <span id="k-value-label">10</span>
-    </label>
-    <input type="range" id="k-slider" min="0" max="15" value="10"
-      style="width: 100%; accent-color: #4CAF50;">
+    <div class="slider-container">
+      <label for="k-slider" class="slider-label">
+        Top K similar documents: <span id="k-value-label">10</span>
+      </label>
+      <input type="range" id="k-slider" min="0" max="15" value="10">
+    </div>
+
+    <button type="submit" id="submit-btn">Generate Answer</button>
   </div>
-
-  <button type="submit" id="submit-btn"
-    style="padding: 12px 20px; width: 200px; background-color: #4CAF50; color: white; font-size: 16px; cursor: pointer; border: none; border-radius: 8px;">
-    Generate
-  </button>
 </form>
-
-
-
 
 <div class="loader" id="loader"></div>
 
-<div id="answer-container" style="width: 100%; max-width: 900px; margin-bottom: 30px; display:none;">
+<div id="answer-container">
   <h2>Answer</h2>
-  <div id="answer-text" style="line-height:1.6; color: #ddd; font-size: 1.05em;"></div>
+  <div id="answer-text"></div>
 </div>
 
 <div id="docs-container"></div>
 
-<div id="graph-section" style="display:none; width: 100%; max-width: 900px;">
+<div id="graph-section">
   <h2>Knowledge Graph</h2>
   <div id="graph-container"></div>
   <button id="export-graph">Export Graph as PNG</button>
   <div id="legend">
-    <div class="legend-item"><span class="legend-color" style="background:#FF6347"></span> Document</div>
-    <div class="legend-item"><span class="legend-color" style="background:#6495ED"></span> Person</div>
-    <div class="legend-item"><span class="legend-color" style="background:#3CB371"></span> Organization</div>
-    <div class="legend-item"><span class="legend-color" style="background:#FFD700"></span> Location</div>
-    <div class="legend-item"><span class="legend-color" style="background:#9370DB"></span> Concept</div>
-    <div class="legend-item"><span class="legend-color" style="background:#48D1CC"></span> Technology</div>
+    <div class="legend-item"><span class="legend-color" style="background:#FF6B6B"></span> Document</div>
+    <div class="legend-item"><span class="legend-color" style="background:#4ECDC4"></span> Person</div>
+    <div class="legend-item"><span class="legend-color" style="background:#45B7D1"></span> Organization</div>
+    <div class="legend-item"><span class="legend-color" style="background:#96CEB4"></span> Location</div>
+    <div class="legend-item"><span class="legend-color" style="background:#FFEAA7"></span> Concept</div>
+    <div class="legend-item"><span class="legend-color" style="background:#DDA0DD"></span> Technology</div>
   </div>
 </div>
 
-<script>
-  const form = document.getElementById('query-form');
-  const input = document.getElementById('query-input');
-  const loader = document.getElementById('loader');
-  const docsContainer = document.getElementById('docs-container');
-  const graphSection = document.getElementById('graph-section');
-  const graphContainer = document.getElementById('graph-container');
-  const errorContainer = document.getElementById('error-container');
-  const exportBtn = document.getElementById('export-graph');
-  let graphSessionId = null;
-  let currentNetwork = null;
-  const kSlider = document.getElementById('k-slider');
-  const kLabel = document.getElementById('k-value-label');
-  kSlider.addEventListener('input', () => {
-    kLabel.innerText = kSlider.value;
-  });
-
-  window.addEventListener('beforeunload', () => {
-    if (graphSessionId) navigator.sendBeacon(`/cleanup/${graphSessionId}`, '');
-  });
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const queryText = input.value.trim();
-    if (!queryText) return;
-
-    clearError();
-
-    if (graphSessionId) {
-      try {
-        await fetch(`/cleanup/${graphSessionId}`, { method: 'POST' });
-      } catch (cleanupErr) {
-        console.warn('Cleanup failed:', cleanupErr);
-      }
-      graphSessionId = null;
-    }
-
-    loader.style.display = 'block';
-    document.getElementById("answer-container").style.display = 'none';
-    document.getElementById("answer-text").innerHTML = '';
-    docsContainer.innerHTML = '';
-    graphSection.style.display = 'none';
-    graphContainer.innerHTML = '';
-    exportBtn.style.display = 'none';
-
-    const k = parseInt(kSlider.value || 10);
-
-    try {
-      const response = await fetch('/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText, k: k })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.answer) {
-        const answerContainer = document.getElementById("answer-container");
-        const answerText = document.getElementById("answer-text");
-        answerText.innerText = data.answer.trim();
-        answerContainer.style.display = 'block';
-      }
-
-      graphSessionId = data.session_id;
-
-      if (data.retrieved_docs?.length > 0) {
-        docsContainer.innerHTML = `<h2>Retrieved Documents</h2>`;
-        data.retrieved_docs.forEach((doc, idx) => {
-          const card = document.createElement('div');
-          card.className = 'doc-card';
-          card.id = `doc-${doc.id}`;
-          card.innerHTML = `
-              <div class="doc-card-header">Document ${idx + 1} | Similarity Score: ${doc.score}</div>
-              <div class="doc-card-content">${doc.summary}</div>
-              <div class="doc-card-reference">Reference: <a href="${doc.url}" target="_blank" rel="noopener noreferrer">View Source</a></div>
-          `;
-        docsContainer.appendChild(card);
-      });
-        } else if (data.answer) {
-      } else {
-        docsContainer.innerHTML = '<h2>No relevant documents found for this query.</h2>';
-      }
-
-      if (data.nodes?.length > 0) {
-        graphSection.style.display = 'block';
-        renderGraph(data.nodes, data.edges);
-      } else if (data.retrieved_docs?.length > 0) {
-        graphSection.style.display = 'block';
-        graphContainer.innerHTML = '<p style="text-align:center;padding:20px;">Documents were found, but no entities could be extracted to build a graph.</p>';
-      }
-
-    } catch (error) {
-      showError(error.message || "Unknown error occurred");
-    } finally {
-      loader.style.display = 'none';
-    }
-  });
-
-  function showError(msg) {
-    errorContainer.textContent = msg;
-    errorContainer.style.display = 'block';
-  }
-
-  function clearError() {
-    errorContainer.textContent = '';
-    errorContainer.style.display = 'none';
-  }
-
-  function renderGraph(nodes, edges) {
-    const graphData = {
-      nodes: new vis.DataSet(nodes.map(n => ({
-        ...n,
-        shape: 'dot',
-        size: 20,
-        title: `${n.label} (${n.group})`
-      }))),
-      edges: new vis.DataSet(edges.map(e => ({
-        ...e,
-        arrows: 'to',
-        label: e.relation || '',
-        font: { align: 'top' }
-      })))
-    };
-
-    const options = {
-      nodes: { font: { size: 14, color: '#ffffff' }, borderWidth: 2 },
-      edges: {
-        width: 2,
-        color: { color: '#848484', highlight: '#4CAF50' },
-        smooth: { type: 'dynamic' }
-      },
-      physics: {
-        forceAtlas2Based: {
-          gravitationalConstant: -30,
-          centralGravity: 0.01,
-          springLength: 200,
-          springConstant: 0.04
-        },
-        solver: 'forceAtlas2Based',
-        timestep: 0.4,
-        stabilization: { iterations: 150 }
-      },
-      groups: {
-        document: { color: { background: '#FF6347', border: '#FF4500' }, shape: 'dot' },
-        Person: { color: { background: '#6495ED', border: '#4169E1' }, shape: 'dot' },
-        Organization: { color: { background: '#3CB371', border: '#2E8B57' }, shape: 'dot' },
-        Location: { color: { background: '#FFD700', border: '#FFA500' }, shape: 'dot' },
-        Concept: { color: { background: '#9370DB', border: '#8A2BE2' }, shape: 'dot' },
-        Technology: { color: { background: '#48D1CC', border: '#20B2AA' }, shape: 'dot' }
-      }
-    };
-
-    currentNetwork = new vis.Network(graphContainer, graphData, options);
-    exportBtn.style.display = 'inline-block';
-
-    exportBtn.onclick = () => {
-      const canvas = graphContainer.getElementsByTagName("canvas")[0];
-      const link = document.createElement("a");
-      link.download = "graph.png";
-      link.href = canvas.toDataURL();
-      link.click();
-    };
-  }
-
-  docsContainer.addEventListener('click', (e) => {
-    const card = e.target.closest('.doc-card');
-    if (card && currentNetwork) {
-      const nodeId = card.id.replace("doc-", "doc_");
-      currentNetwork.selectNodes([nodeId]);
-      currentNetwork.focus(nodeId, { scale: 1.5, animation: true });
-    }
-  });
-</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
