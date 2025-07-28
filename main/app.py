@@ -13,10 +13,9 @@ from openai import OpenAI
 # --- InsightGraph: Knowledge Graph Extraction Service ---
 
 # Load environment variables from .env file
+os.environ.pop("SSL_CERT_FILE", None)
 load_dotenv()
 from together import Together
-
-client = Together(api_key = os.getenv("TOGETHER_API_KEY"))
 # --- Initializations ---
 app = Flask(__name__)
 mongo_uri = os.getenv("MONGO_URI")
@@ -122,7 +121,7 @@ def query():
         "\n".join(f"{k}: {v}" for k, v in clean_doc(doc).items())
         for doc in retrieved_docs_for_frontend
     ])
-
+    client = Together(api_key = os.getenv("TOGETHER_API_KEY"))
     prompt = f"""
     You are a powerful system that extracts structured knowledge from text.
 
@@ -222,17 +221,23 @@ def query():
         response = client2.chat.completions.create(
             model = "meta-llama/Llama-4-Scout-17B-16E-Instruct",
             messages = [
-                {"role": "user", "content": answer_prompt}
+                {
+                    "role": "user",
+                    "content": answer_prompt
+                }
             ],
+            stop = [],
             stream = True,
             stream_options = {
                 "include_usage": True,
                 "continuous_usage_stats": True
             },
-            max_tokens = 500,
-            temperature = 0.9,
+            top_p = 1,
+            max_tokens = 1000,
+            temperature = 1,
+            presence_penalty = 0,
+            frequency_penalty = 0
         )
-
         paragraph_answer = ""
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content is not None:
