@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 import re
 import json
-
+from openai import OpenAI
 # --- InsightGraph: Knowledge Graph Extraction Service ---
 
 # Load environment variables from .env file
@@ -24,7 +24,7 @@ mongo_collection_name = os.getenv("MONGO_COLLECTION")
 mongo_client = MongoClient(mongo_uri)
 mongo_db = mongo_client[mongo_db_name]
 mongo_collection = mongo_db[mongo_collection_name]
-
+baseten_api_key = os.getenv("BASETEN_API_KEY")
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_USERNAME")
 neo4j_password = os.getenv("NEO4J_PASSWORD")
@@ -180,6 +180,64 @@ def query():
     if not parsed_output or "entities" not in parsed_output:
         return jsonify({"error": "Entity/relationship extraction failed or returned invalid format"}), 500
 
+    # 3.5 Generate paragraph answer to user query using Baseten LLM
+    try:
+        context_text = "\n\n".join([
+            f"Title: {doc['title']}\nSummary: {doc['summary']}\nKeywords: {doc['keywords']}"
+            for doc in retrieved_docs_for_frontend
+        ])
+
+        answer_prompt = f"""
+        You are a helpful assistant that answers user queries using the provided documents.
+        Be concise and accurate. If the documents do not provide enough information to fully answer the query,
+        you should clearly state what is known and mention that the current RAG system only contains 30,000 documents and cannot fully support your query.
+
+        Query: {user_query}
+
+        Documents:
+        {context_text}
+
+        Answer the query using the above documents.
+        Output format and instructions:
+        Your first two sentences should directly answer the query.
+        Then, provide a paragraph long summary cum explanation of the most relevant documents used to answer the query.
+        Use the following format:
+        Plain text only - Avoid bold, italics, or any other formatting.
+        Do not include any markdown, code blocks, or explanations.
+        Keep the answer concise and relevant to the query.
+        Do not exceed 100 words.
+        Refer to the number and ID's of documents used in your answer. Be clear about this and show it explicitly at the end of your answer as references.
+        You do not have to use all documents, only the most relevant ones.
+        """
+
+        from openai import OpenAI
+        client2 = OpenAI(
+            api_key=baseten_api_key,
+            base_url="https://inference.baseten.co/v1"
+        )
+
+        response = client2.chat.completions.create(
+            model="meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            messages=[
+                {"role": "user", "content": answer_prompt}
+            ],
+            stream=True,
+            stream_options={
+                "include_usage": True,
+                "continuous_usage_stats": True
+            },
+            max_tokens=500,
+            temperature=0.9,
+        )
+
+        paragraph_answer = ""
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content is not None:
+                paragraph_answer += chunk.choices[0].delta.content
+
+    except Exception as e:
+        paragraph_answer = f"[LLM answer generation failed: {e}]"
+
     # 4. Push entities, relationships, and document links into Neo4j
     nodes, edges, seen_nodes, seen_nodes_neo4j = [], [], set(), set()
 
@@ -269,7 +327,8 @@ def query():
         "retrieved_docs": retrieved_docs_for_frontend,
         "nodes": nodes,
         "edges": edges,
-        "session_id": session_id
+        "session_id": session_id,
+        "answer": paragraph_answer or "No answer generated."
     })
 
 

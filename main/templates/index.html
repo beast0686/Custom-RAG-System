@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>InsightGraph Explorer</title>
+  <title>Classical RAG</title>
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <style>
     /* [unchanged styles] */
@@ -127,7 +127,7 @@
 </head>
 <body>
 
-<h1>✨ InsightGraph Explorer</h1>
+<h1>Classical RAG System</h1>
 
 <form id="query-form">
   <input type="text" id="query-input" placeholder="Ask about your documents..." autocomplete="off">
@@ -135,6 +135,10 @@
 </form>
 
 <div class="loader" id="loader"></div>
+<div id="answer-container" style="width: 100%; max-width: 900px; margin-bottom: 30px; display:none;">
+  <h2>Answer</h2>
+  <div id="answer-text" style="line-height:1.6; color: #ddd; font-size: 1.05em;"></div>
+</div>
 <div id="docs-container"></div>
 
 <div id="graph-section" style="display:none; width: 100%; max-width: 900px;">
@@ -176,6 +180,8 @@
         graphSessionId = null;
     }
     loader.style.display = 'block';
+    document.getElementById("answer-container").style.display = 'none';
+    document.getElementById("answer-text").innerHTML = '';
     docsContainer.innerHTML = '';
     graphSection.style.display = 'none';
     graphContainer.innerHTML = '';
@@ -193,6 +199,12 @@
       }
 
       const data = await response.json();
+      if (data.answer) {
+        const answerContainer = document.getElementById("answer-container");
+        const answerText = document.getElementById("answer-text");
+        answerText.innerText = data.answer.trim();
+        answerContainer.style.display = 'block';
+      }
       graphSessionId = data.session_id;
 
       if (data.retrieved_docs?.length > 0) {
