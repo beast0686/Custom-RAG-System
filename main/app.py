@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 import re
 import json
+from openai import OpenAI
 
 # --- InsightGraph: Knowledge Graph Extraction Service ---
 
@@ -24,16 +25,17 @@ mongo_collection_name = os.getenv("MONGO_COLLECTION")
 mongo_client = MongoClient(mongo_uri)
 mongo_db = mongo_client[mongo_db_name]
 mongo_collection = mongo_db[mongo_collection_name]
-
+baseten_api_key = os.getenv("BASETEN_API_KEY")
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_USERNAME")
 neo4j_password = os.getenv("NEO4J_PASSWORD")
-neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+neo4j_driver = GraphDatabase.driver(neo4j_uri, auth = (neo4j_user, neo4j_password))
 
 # --- Local Model Clients ---
 print("\n[INFO] Loading local sentence transformer model...")
 LOCAL_EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
 print("[INFO] Embedding model loaded successfully.")
+
 
 # --- Utility Functions ---
 def extract_json_from_string(s):
@@ -43,22 +45,25 @@ def extract_json_from_string(s):
         print(f"[ERROR] JSON parsing failed: {e}")
         print(f"[DEBUG] Raw content received:\n{s}")
         return None
+
+
 # --- Flask Routes ---
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-@app.route("/query", methods=["POST"])
+@app.route("/query", methods = ["POST"])
 def query():
     data = request.get_json()
     user_query = data.get("query", "")
+    k = int(data.get("k", 10))  # default to 10 if not provided
     if not user_query:
         return jsonify({"error": "Query cannot be empty"}), 400
 
     # 1. Generate embedding for the user query with NORMALIZATION
     try:
-        query_vector = LOCAL_EMBEDDING_MODEL.encode(user_query, normalize_embeddings=True).tolist()
+        query_vector = LOCAL_EMBEDDING_MODEL.encode(user_query, normalize_embeddings = True).tolist()
     except Exception as e:
         return jsonify({"error": f"Failed to generate local query embedding: {e}"}), 500
 
@@ -70,7 +75,7 @@ def query():
                 "path": "embedding",
                 "queryVector": query_vector,
                 "numCandidates": 100,
-                "limit":10,
+                "limit": k,
             }
         },
         {"$project": {
@@ -130,10 +135,10 @@ def query():
        - "source": name of the source entity
        - "relation": a concise verb or phrase describing the relationship
        - "target": name of the target entity
-    
+
     3. You must only return not more than 10 entities and 20 relationships for each in total no matter how many documents. These should be the most relevant ones based on the provided documents.
     These should also make sense and be interlinked amongst documents. 
-    
+
     Output ONLY a valid JSON object with two top-level keys: "entities" and "relationships".
 
     - Do not explain anything.
@@ -179,6 +184,62 @@ def query():
 
     if not parsed_output or "entities" not in parsed_output:
         return jsonify({"error": "Entity/relationship extraction failed or returned invalid format"}), 500
+
+    # 3.5 Generate paragraph answer to user query using Baseten LLM
+    try:
+        context_text = "\n\n".join([
+            f"Title: {doc['title']}\nSummary: {doc['summary']}\nKeywords: {doc['keywords']}"
+            for doc in retrieved_docs_for_frontend
+        ])
+
+        answer_prompt = f"""
+        You are a helpful assistant that answers user queries using the provided documents.
+        Be concise and accurate. If the documents do not provide enough information to fully answer the query,
+        you should clearly state what is known and mention that the current RAG system only contains 30,000 documents and cannot fully support your query.
+
+        Query: {user_query}
+
+        Documents:
+        {context_text}
+
+        Answer the query using the above documents.
+        Output format and instructions:
+        Your first two sentences should directly answer the query.
+        Then, provide a paragraph long summary cum explanation of the most relevant documents used to answer the query.
+        Use the following format:
+        Plain text only - Avoid bold, italics, or any other formatting.
+        Do not include any markdown, code blocks, or explanations.
+        Keep the answer concise and relevant to the query.
+        Do not exceed 100 words.
+        Refer to the number and ID's of documents used in your answer. Be clear about this and show it explicitly at the end of your answer as references.
+        You do not have to use all documents, only the most relevant ones.
+        """
+        client2 = OpenAI(
+            api_key = baseten_api_key,
+            base_url = "https://inference.baseten.co/v1"
+        )
+
+        response = client2.chat.completions.create(
+            model = "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            messages = [
+                {"role": "user", "content": answer_prompt}
+            ],
+            stream = True,
+            stream_options = {
+                "include_usage": True,
+                "continuous_usage_stats": True
+            },
+            max_tokens = 500,
+            temperature = 0.9,
+        )
+
+        paragraph_answer = ""
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content is not None:
+                paragraph_answer += chunk.choices[0].delta.content
+
+    except Exception as e:
+        paragraph_answer = f"[LLM answer generation failed: {e}]"
 
     # 4. Push entities, relationships, and document links into Neo4j
     nodes, edges, seen_nodes, seen_nodes_neo4j = [], [], set(), set()
@@ -269,16 +330,17 @@ def query():
         "retrieved_docs": retrieved_docs_for_frontend,
         "nodes": nodes,
         "edges": edges,
-        "session_id": session_id
+        "session_id": session_id,
+        "answer": paragraph_answer or "No answer generated."
     })
 
 
-@app.route("/cleanup/<session_id>", methods=['POST'])
+@app.route("/cleanup/<session_id>", methods = ['POST'])
 def cleanup(session_id):
     with neo4j_driver.session() as session:
-        session.run("MATCH (n {session: $sid}) DETACH DELETE n", sid=session_id)
+        session.run("MATCH (n {session: $sid}) DETACH DELETE n", sid = session_id)
     return f"Cleanup complete for session {session_id}"
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug = True, port = 5001)
