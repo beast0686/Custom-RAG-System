@@ -53,6 +53,7 @@ def index():
 def query():
     data = request.get_json()
     user_query = data.get("query", "")
+    k = int(data.get("k", 10))  # default to 10 if not provided
     if not user_query:
         return jsonify({"error": "Query cannot be empty"}), 400
 
@@ -70,7 +71,7 @@ def query():
                 "path": "embedding",
                 "queryVector": query_vector,
                 "numCandidates": 100,
-                "limit":10,
+                "limit": k,
             }
         },
         {"$project": {
