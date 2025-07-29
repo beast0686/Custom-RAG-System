@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightGraph: Knowledge Graph Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        #query-form {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #query-input {
+            width: 60%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #k-input {
+            width: 60px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #node-type-filter {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #cleanup {
+            background-color: #dc3545;
+        }
+        #cleanup:hover {
+            background-color: #c82333;
+        }
+        #results, #answer {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .doc {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        #graph-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            display: block;
+        }
+        #cards-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .data-card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .data-card:hover {
+            transform: translateY(-2px);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-icon {
+            width: 30px;
+            height: 30px;
+            background: #007bff;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+        }
+        .node circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+            cursor: pointer;
+        }
+        .node text {
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        .link-text {
+            font-size: 10px;
+            fill: #333;
+        }
+        #node-details-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+            animation: fadeIn 0.3s;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s;
+        }
+        .close-modal {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+            color: #dc3545;
+        }
+        #console-log {
+            margin-top: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .log-entry {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .log-entry.system { color: #6b7280; }
+        .log-entry.info { color: #2563eb; }
+        .log-entry.error { color: #dc2626; }
+        .view-btn {
+            margin: 0 5px;
+            padding: 8px 15px;
+            background: #6b7280;
+        }
+        .view-btn.active {
+            background: #007bff;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+    </style>
+</head>
+<body>
+    <h1>InsightGraph: Knowledge Graph Extraction</h1>
+    <div id="query-form">
+        <input type="text" id="query-input" placeholder="Enter your query...">
+        <input type="number" id="k-input" value="10" min="1" max="50" title="Number of documents to retrieve">
+        <select id="node-type-filter">
+            <option value="all">All Node Types</option>
+            <option value="document">Document</option>
+            <option value="Person">Person</option>
+            <option value="Organization">Organization</option>
+            <option value="Location">Location</option>
+            <option value="Concept">Concept</option>
+            <option value="Technology">Technology</option>
+            <option value="Event">Event</option>
+            <option value="Product">Product</option>
+            <option value="Other">Other</option>
+        </select>
+        <button onclick="submitQuery()">Search</button>
+        <button id="cleanup" onclick="cleanupSession()">Cleanup Session</button>
+        <button class="view-btn active" data-view="graph" onclick="switchView('graph')">Graph View</button>
+        <button class="view-btn" data-view="cards" onclick="switchView('cards')">Cards View</button>
+    </div>
+    <div id="answer"></div>
+    <div id="results"></div>
+    <svg id="graph-container"></svg>
+    <div id="cards-container"></div>
+    <div id="console-log">
+        <div class="log-entry system">
+            <span class="log-time">System</span>
+            <span class="log-message">Application initialized</span>
+        </div>
+    </div>
+    <div id="node-details-modal">
+        <span class="close-modal">&times;</span>
+        <h2 id="node-details-title"></h2>
+        <div id="node-details-body"></div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let allNodesData = [];
+        let filteredData = { nodes: [], edges: [] };
+        let knowledgeGraph = null;
+
+        function addLog(type, message) {
+            const consoleLog = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.createElement('div');
+            logElement.className = `log-entry ${type}`;
+            logElement.innerHTML = `
+                <span class="log-time">${timestamp}</span>
+                <span class="log-message">${message}</span>
+            `;
+            consoleLog.appendChild(logElement);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        function submitQuery() {
+            const query = document.getElementById('query-input').value;
+            const k = document.getElementById('k-input').value;
+            if (!query) {
+                addLog('error', 'Query cannot be empty');
+                alert('Please enter a query.');
+                return;
+            }
+
+            addLog('info', 'Submitting query...');
+            $.ajax({
+                url: '/query',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query: query, k: k }),
+                success: function(response) {
+                    currentSessionId = response.session_id;
+                    allNodesData = response.nodes;
+                    filteredData = { nodes: [...allNodesData], edges: [...response.edges] };
+                    displayResults(response.retrieved_docs);
+                    displayAnswer(response.answer);
+                    switchView('graph');
+                    applyFilter();
+                    addLog('success', 'Query processed successfully');
+                },
+                error: function(xhr) {
+                    addLog('error', `Query failed: ${xhr.responseJSON.error}`);
+                    alert('Error: ' + xhr.responseJSON.error);
+                }
+            });
+        }
+
+        function displayResults(docs) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>Retrieved Documents</h2>';
+            docs.forEach(doc => {
+                resultsDiv.innerHTML += `
+                    <div class="doc">
+                        <h3>${doc.title}</h3>
+                        <p><strong>ID:</strong> ${doc.id}</p>
+                        <p><strong>Score:</strong> ${doc.score}</p>
+                        <p><strong>Author:</strong> ${doc.author}</p>
+                        <p><strong>Summary:</strong> ${doc.summary}</p>
+                        <p><strong>Keywords:</strong> ${doc.keywords}</p>
+                        <p><strong>Content Snippet:</strong> ${doc.content_snippet}</p>
+                        <p><a href="${doc.url}" target="_blank">Source</a></p>
+                    </div>
+                `;
+            });
+        }
+
+        function displayAnswer(answer) {
+            const answerDiv = document.getElementById('answer');
+            answerDiv.innerHTML = `<h2>Answer</h2><p>${answer}</p>`;
+        }
+
+        function cleanupSession() {
+            if (!currentSessionId) {
+                addLog('error', 'No session to clean up');
+                alert('No session to clean up.');
+                return;
+            }
+            $.ajax({
+                url: `/cleanup/${currentSessionId}`,
+                type: 'POST',
+                success: function(response) {
+                    addLog('success', response);
+                    alert(response);
+                    currentSessionId = null;
+                    allNodesData = [];
+                    filteredData = { nodes: [], edges: [] };
+                    document.getElementById('graph-container').innerHTML = '';
+                    document.getElementById('cards-container').innerHTML = '';
+                    document.getElementById('results').innerHTML = '';
+                    document.getElementById('answer').innerHTML = '';
+                },
+                error: function(xhr) {
+                    addLog('error', `Cleanup failed: ${xhr.responseText}`);
+                    alert('Cleanup failed: ' + xhr.responseText);
+                }
+            });
+        }
+
+        function switchView(viewType) {
+            const graphContainer = document.getElementById('graph-container');
+            const cardsContainer = document.getElementById('cards-container');
+            const viewButtons = document.querySelectorAll('.view-btn');
+            viewButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === viewType);
+            });
+
+            if (viewType === 'graph') {
+                graphContainer.style.display = 'block';
+                cardsContainer.style.display = 'none';
+                renderGraph(filteredData.nodes, filteredData.edges);
+                addLog('info', 'Switched to graph view');
+            } else if (viewType === 'cards') {
+                graphContainer.style.display = 'none';
+                cardsContainer.style.display = 'block';
+                generateDataCards(filteredData.nodes);
+                addLog('info', 'Switched to cards view');
+            }
+        }
+
+        function applyFilter() {
+            const nodeType = document.getElementById('node-type-filter').value;
+            let nodes = [...allNodesData];
+            if (nodeType !== 'all') {
+                nodes = nodes.filter(node => node.group === nodeType);
+            }
+            const nodeIds = new Set(nodes.map(node => node.id));
+            const edges = filteredData.edges.filter(edge => nodeIds.has(edge.from) && nodeIds.has(edge.to));
+            filteredData = { nodes, edges };
+            switchView(document.querySelector('.view-btn.active').dataset.view);
+            addLog('info', nodeType === 'all' ? 'Filter cleared' : `Filtered to node type "${nodeType}"`);
+        }
+
+        function renderGraph(nodes, edges) {
+            const width = 800;
+            const height = 600;
+            d3.select('#graph-container').selectAll('*').remove();
+
+            const svg = d3.select('#graph-container')
+                .attr('width', width)
+                .attr('height', height);
+
+            const color = d3.scaleOrdinal()
+                .domain(['document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product', 'Other'])
+                .range(d3.schemeCategory10);
+
+            // Map edges to use source and target for D3.js compatibility
+            const links = edges.map(e => ({ source: e.from, target: e.to, relation: e.relation }));
+
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+
+            const link = svg.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(links)
+                .enter()
+                .append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', 2);
+
+            const linkText = svg.append('g')
+                .attr('class', 'link-labels')
+                .selectAll('text')
+                .data(links.filter(e => e.relation))
+                .enter()
+                .append('text')
+                .attr('class', 'link-text')
+                .attr('dy', -2)
+                .text(d => d.relation)
+                .attr('font-size', '10px')
+                .attr('fill', '#333');
+
+            const node = svg.append('g')
+                .attr('class', 'nodes')
+                .selectAll('g')
+                .data(nodes)
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .on('click', showNodeDetails)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            node.append('circle')
+                .attr('r', 8)
+                .attr('fill', d => color(d.group));
+
+            node.append('text')
+                .attr('dx', 12)
+                .attr('dy', '.35em')
+                .text(d => d.label);
+
+            node.append('title')
+                .text(d => d.label);
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+
+                linkText
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+            });
+
+            setTimeout(() => {
+                const bounds = svg.node().getBBox();
+                const scale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
+                svg.transition().duration(400).attr('transform', `scale(${scale}) translate(${-bounds.x + width/(2*scale)},${-bounds.y + height/(2*scale)})`);
+            }, 2000);
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        function generateDataCards(nodes) {
+            const cardsContainer = document.getElementById('cards-container');
+            if (!nodes || nodes.length === 0) {
+                cardsContainer.innerHTML = '<p>No nodes to display</p>';
+                return;
+            }
+            cardsContainer.innerHTML = nodes.map(node => `
+                <div class="data-card" onclick='showNodeDetails(${JSON.stringify(node).replace(/'/g, "&#39;")})'>
+                    <div class="card-header">
+                        <div class="card-icon ${node.group}">${node.group[0].toUpperCase()}</div>
+                        <div class="card-title">${node.label}</div>
+                    </div>
+                    <div class="card-details">
+                        <p><strong>Type:</strong> ${node.group}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showNodeDetails(d) {
+            const modal = document.getElementById('node-details-modal');
+            const title = document.getElementById('node-details-title');
+            const body = document.getElementById('node-details-body');
+            title.textContent = d.label || 'Unknown Node';
+            let html = `
+                <div class="node-detail-section">
+                    <p><strong>Type:</strong> ${d.group || 'N/A'}</p>
+                    <p><strong>ID:</strong> ${d.id || 'N/A'}</p>
+            `;
+            const connectedEdges = filteredData.edges.filter(e => e.from === d.id || e.to === d.id);
+            if (connectedEdges.length > 0) {
+                html += `
+                    <div class="node-detail-section">
+                        <h5>Connections (${connectedEdges.length})</h5>
+                        <div class="connected-nodes">
+                            ${connectedEdges.slice(0, 5).map(e => {
+                                const otherNode = e.from === d.id ? allNodesData.find(n => n.id === e.to) : allNodesData.find(n => n.id === e.from);
+                                return `
+                                    <div class="connected-node">
+                                        <span class="connection-type">${e.relation || 'mentions'}</span>
+                                        <strong>${otherNode.label}</strong>
+                                        <em>(${otherNode.group})</em>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${connectedEdges.length > 5 ? `<p style="text-align: center; color: #6b7280; font-style: italic;">... and ${connectedEdges.length - 5} more</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            body.innerHTML = html;
+            modal.style.display = 'block';
+            modal.classList.add('fade-in');
+            addLog('info', `Opened details for node: ${d.label}`);
+        }
+
+        document.getElementById('node-type-filter').onchange = applyFilter;
+        document.querySelector('.close-modal').onclick = () => {
+            document.getElementById('node-details-modal').style.display = 'none';
+            addLog('info', 'Closed node details modal');
+        };
+        window.onclick = (event) => {
+            if (event.target === document.getElementById('node-details-modal')) {
+                document.getElementById('node-details-modal').style.display = 'none';
+                addLog('info', 'Closed node details modal');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Classical RAG System</title>
-  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
 
-<div id="status-bar">✨ 29,873 Records Ready</div>
+<div id="status-bar">✨ 29,873 Records</div>
 
 <h1>Classical RAG System</h1>
 
@@ -45,15 +46,15 @@
 
 <div id="graph-section">
   <h2>Knowledge Graph</h2>
-  <div id="graph-container"></div>
+  <svg id="graph-container"></svg>
   <button id="export-graph">Export Graph as PNG</button>
   <div id="legend">
-    <div class="legend-item"><span class="legend-color" style="background:#FF6B6B"></span> Document</div>
-    <div class="legend-item"><span class="legend-color" style="background:#4ECDC4"></span> Person</div>
-    <div class="legend-item"><span class="legend-color" style="background:#45B7D1"></span> Organization</div>
-    <div class="legend-item"><span class="legend-color" style="background:#96CEB4"></span> Location</div>
-    <div class="legend-item"><span class="legend-color" style="background:#FFEAA7"></span> Concept</div>
-    <div class="legend-item"><span class="legend-color" style="background:#DDA0DD"></span> Technology</div>
+    <div class="legend-item"><span class="legend-color" style="background:#1f77b4"></span> Document</div>
+    <div class="legend-item"><span class="legend-color" style="background:#ff7f0e"></span> Person</div>
+    <div class="legend-item"><span class="legend-color" style="background:#2ca02c"></span> Organization</div>
+    <div class="legend-item"><span class="legend-color" style="background:#d62728"></span> Location</div>
+    <div class="legend-item"><span class="legend-color" style="background:#9467bd"></span> Concept</div>
+    <div class="legend-item"><span class="legend-color" style="background:#8c564b"></span> Technology</div>
   </div>
 </div>
 

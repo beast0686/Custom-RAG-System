@@ -7,7 +7,6 @@ const graphContainer = document.getElementById('graph-container');
 const errorContainer = document.getElementById('error-container');
 const exportBtn = document.getElementById('export-graph');
 let graphSessionId = null;
-let currentNetwork = null;
 const kSlider = document.getElementById('k-slider');
 const kLabel = document.getElementById('k-value-label');
 
@@ -196,56 +195,131 @@ function clearError() {
 }
 
 function renderGraph(nodes, edges) {
-  const graphData = {
-    nodes: new vis.DataSet(nodes.map(n => ({
-      ...n,
-      shape: 'dot',
-      size: 25,
-      title: `${n.label} (${n.group})`,
-      font: { size: 13, color: '#1a1a1a', strokeWidth: 2, strokeColor: '#ffffff' }
-    }))),
-    edges: new vis.DataSet(edges.map(e => ({
-      ...e,
-      arrows: 'to',
-      label: e.relation || '',
-      font: { align: 'top', size: 11, color: '#4a4a4a', strokeWidth: 1, strokeColor: '#ffffff' }
-    })))
-  };
+  const width = graphContainer.clientWidth;
+  const height = 600;
+  d3.select('#graph-container').selectAll('*').remove();
 
-  const options = {
-    nodes: {
-      font: { size: 13, color: '#1a1a1a' },
-      borderWidth: 3,
-      shadow: { enabled: true, color: 'rgba(0,0,0,0.15)', size: 8, x: 2, y: 2 }
-    },
-    edges: {
-      width: 2,
-      color: { color: '#9575cd', highlight: '#6a1b9a' },
-      smooth: { type: 'dynamic' },
-      shadow: { enabled: true, color: 'rgba(0,0,0,0.1)', size: 4, x: 1, y: 1 }
-    },
-    physics: {
-      forceAtlas2Based: {
-        gravitationalConstant: -30,
-        centralGravity: 0.01,
-        springLength: 200,
-        springConstant: 0.04
-      },
-      solver: 'forceAtlas2Based',
-      timestep: 0.4,
-      stabilization: { iterations: 150 }
-    },
-    groups: {
-      document: { color: { background: '#FF6B6B', border: '#FF5252' }, shape: 'dot' },
-      Person: { color: { background: '#4ECDC4', border: '#26A69A' }, shape: 'dot' },
-      Organization: { color: { background: '#45B7D1', border: '#2196F3' }, shape: 'dot' },
-      Location: { color: { background: '#96CEB4', border: '#66BB6A' }, shape: 'dot' },
-      Concept: { color: { background: '#FFEAA7', border: '#FFEB3B' }, shape: 'dot' },
-      Technology: { color: { background: '#DDA0DD', border: '#BA68C8' }, shape: 'dot' }
+  const svg = d3.select('#graph-container')
+    .attr('width', width)
+    .attr('height', height)
+    .style('background', '#f9fafb');
+
+  const color = d3.scaleOrdinal()
+    .domain(['document', 'Person', 'Organization', 'Location', 'Concept', 'Technology'])
+    .range(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']);
+
+  // Map edges to use source and target for D3.js compatibility
+  const links = edges.map(e => ({ source: e.from, target: e.to, relation: e.relation }));
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(width / 2, height / 2));
+
+  const link = svg.append('g')
+    .attr('class', 'links')
+    .selectAll('line')
+    .data(links)
+    .enter()
+    .append('line')
+    .attr('class', 'link')
+    .attr('stroke', '#9575cd')
+    .attr('stroke-width', 2);
+
+  const linkText = svg.append('g')
+    .attr('class', 'link-labels')
+    .selectAll('text')
+    .data(links.filter(e => e.relation))
+    .enter()
+    .append('text')
+    .attr('class', 'link-text')
+    .attr('dy', -2)
+    .text(d => d.relation)
+    .attr('font-size', '11px')
+    .attr('fill', '#4a4a4a')
+    .style('font-family', 'Inter, sans-serif');
+
+  const node = svg.append('g')
+    .attr('class', 'nodes')
+    .selectAll('g')
+    .data(nodes)
+    .enter()
+    .append('g')
+    .attr('class', 'node')
+    .on('click', (event, d) => {
+      // Highlight node and animate
+      d3.select(event.currentTarget).select('circle')
+        .transition()
+        .duration(200)
+        .attr('r', 12)
+        .transition()
+        .duration(200)
+        .attr('r', 8);
+    })
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  node.append('circle')
+    .attr('r', 8)
+    .attr('fill', d => color(d.group))
+    .attr('stroke', d => d3.color(color(d.group)).darker(0.5))
+    .attr('stroke-width', 3);
+
+  node.append('text')
+    .attr('dx', 12)
+    .attr('dy', '.35em')
+    .text(d => d.label)
+    .style('font-size', '13px')
+    .style('font-family', 'Inter, sans-serif')
+    .style('fill', '#1a1a1a');
+
+  node.append('title')
+    .text(d => `${d.label} (${d.group})`);
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node
+      .attr('transform', d => `translate(${d.x},${d.y})`);
+
+    linkText
+      .attr('x', d => (d.source.x + d.target.x) / 2)
+      .attr('y', d => (d.source.y + d.target.y) / 2);
+  });
+
+  // Auto-fit graph
+  setTimeout(() => {
+    const bounds = svg.node().getBBox();
+    if (bounds.width > 0 && bounds.height > 0) {
+      const scale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
+      svg.transition()
+        .duration(400)
+        .attr('transform', `scale(${scale}) translate(${-bounds.x + width/(2*scale)},${-bounds.y + height/(2*scale)})`);
     }
-  };
+  }, 2000);
 
-  currentNetwork = new vis.Network(graphContainer, graphData, options);
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
 
   // Show export button with animation
   exportBtn.style.display = 'inline-block';
@@ -257,29 +331,53 @@ function renderGraph(nodes, edges) {
   }, 500);
 
   exportBtn.onclick = () => {
-    const canvas = graphContainer.getElementsByTagName("canvas")[0];
-    const link = document.createElement("a");
-    link.download = "knowledge-graph.png";
-    link.href = canvas.toDataURL();
-    link.click();
+    // Convert SVG to PNG
+    const svgElement = graphContainer.querySelector('svg');
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
 
-    // Visual feedback
-    exportBtn.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-      exportBtn.style.transform = 'scale(1)';
-    }, 150);
+    img.onload = () => {
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.download = 'knowledge-graph.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      URL.revokeObjectURL(url);
+
+      // Visual feedback
+      exportBtn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        exportBtn.style.transform = 'scale(1)';
+      }, 150);
+    };
+    img.src = url;
   };
 }
 
 // Enhanced document card interaction
 docsContainer.addEventListener('click', (e) => {
   const card = e.target.closest('.doc-card');
-  if (card && currentNetwork) {
+  if (card) {
     const nodeId = card.id.replace("doc-", "doc_");
-    currentNetwork.selectNodes([nodeId]);
-    currentNetwork.focus(nodeId, { scale: 1.5, animation: { duration: 1000, easingFunction: 'easeInOutQuad' } });
+    // Highlight corresponding node in D3.js graph
+    d3.selectAll('.node')
+      .filter(d => d.id === nodeId)
+      .select('circle')
+      .transition()
+      .duration(200)
+      .attr('r', 12)
+      .transition()
+      .duration(200)
+      .attr('r', 8);
 
-    // Visual feedback
+    // Visual feedback for card
     card.style.transform = 'translateY(-8px) scale(1.02)';
     card.style.boxShadow = 'var(--shadow-strong), var(--shadow-glow)';
     setTimeout(() => {
