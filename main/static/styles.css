@@ -502,20 +502,6 @@ h2::before {
   animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#graph-container {
-  width: 100%;
-  height: 500px;
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(149, 117, 205, 0.15);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 #graph-container:hover {
   box-shadow: var(--shadow-medium);
 }
@@ -533,6 +519,58 @@ h2::before {
   background-size: 24px 24px;
   pointer-events: none;
   opacity: 0.5;
+}
+#graph-section {
+  display: none;
+  width: 100%;
+  max-width: 900px;
+  margin: 2rem auto;
+  animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+}
+
+#graph-container {
+  width: 100%;
+  height: 500px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(149, 117, 205, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#graph-container svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+}
+
+#export-graph {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(to right, #b388ff, #ce93d8);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#export-graph:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-glow);
 }
 
 #export-graph {

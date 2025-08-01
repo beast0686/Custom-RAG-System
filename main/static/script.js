@@ -194,134 +194,157 @@ function clearError() {
   errorContainer.style.display = 'none';
 }
 
-function renderGraph(nodes, edges) {
-  const width = graphContainer.clientWidth;
-  const height = 600;
-  d3.select('#graph-container').selectAll('*').remove();
 
-  const svg = d3.select('#graph-container')
-    .attr('width', width)
-    .attr('height', height)
-    .style('background', '#f9fafb');
+function renderGraph(nodes, edges) {
+  const container = document.getElementById('graph-container');
+  container.innerHTML = ''; // Clear previous graph
+
+  if (!nodes || nodes.length === 0) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:1.125rem;">No data available to build a graph.</div>';
+    return;
+  }
+
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  // --- NEW LOGIC: Introduce a central DB node and link documents to it ---
+  const dbNode = { id: "db_center", label: "DB", group: "Database", fx: width / 2, fy: height / 2 };
+  const finalNodes = [dbNode, ...nodes];
+
+  const docLinks = nodes
+    .filter(n => n.group === 'Document')
+    .map(docNode => ({ source: dbNode.id, target: docNode.id }));
+
+  const finalEdges = [...edges, ...docLinks];
+  const links = finalEdges.map(e => ({ source: e.from || e.source, target: e.to || e.target, relation: e.relation }));
+  // --- END OF NEW LOGIC ---
+
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .style('background-color', '#211f24');
+
+  const g = svg.append("g");
 
   const color = d3.scaleOrdinal()
-    .domain(['document', 'Person', 'Organization', 'Location', 'Concept', 'Technology'])
-    .range(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']);
+    .domain(['Database', 'Document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product'])
+    .range(['#ff7f0e', '#4e79a7', '#f28e2c', '#59a14f', '#e15759', '#76b7b2', '#af7aa1', '#ff9da7', '#9c755f']);
 
-  // Map edges to use source and target for D3.js compatibility
-  const links = edges.map(e => ({ source: e.from, target: e.to, relation: e.relation }));
+  // --- Physics simulation tuned for the new DB Hub model ---
+  const simulation = d3.forceSimulation(finalNodes)
+    .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.relation ? 120 : 70).strength(1))
+    .force("charge", d3.forceManyBody().strength(-400))
+    .force("center", d3.forceCenter(width / 2, height / 2).strength(0.2)) // Gently pull everything to center
+    .force("collision", d3.forceCollide().radius(25));
 
-  const simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id).distance(100))
-    .force('charge', d3.forceManyBody().strength(-300))
-    .force('center', d3.forceCenter(width / 2, height / 2));
-
-  const link = svg.append('g')
+  const link = g.append('g')
     .attr('class', 'links')
     .selectAll('line')
     .data(links)
-    .enter()
-    .append('line')
-    .attr('class', 'link')
-    .attr('stroke', '#9575cd')
-    .attr('stroke-width', 2);
+    .enter().append('line')
+    .attr('stroke', d => d.relation ? '#999' : '#555') // Make DB links darker
+    .attr('stroke-opacity', 0.8)
+    .attr('stroke-width', 1.5);
 
-  const linkText = svg.append('g')
+  const linkText = g.append('g')
     .attr('class', 'link-labels')
     .selectAll('text')
-    .data(links.filter(e => e.relation))
-    .enter()
-    .append('text')
-    .attr('class', 'link-text')
-    .attr('dy', -2)
-    .text(d => d.relation)
-    .attr('font-size', '11px')
-    .attr('fill', '#4a4a4a')
-    .style('font-family', 'Inter, sans-serif');
+    .data(links)
+    .enter().append('text')
+    .attr('class', 'link-label-text')
+    .text(d => d.relation || '')
+    .attr('font-size', '10px')
+    .attr('fill', '#f0f0f0')
+    .attr('text-anchor', 'middle')
+    // This line removes the bold styling.
+    .style('font-weight', 'normal') // or 400
+    .style('paint-order', 'stroke')
+    .style('stroke', '#181818')
+    .style('stroke-width', '3px');
 
-  const node = svg.append('g')
+
+  const node = g.append('g')
     .attr('class', 'nodes')
     .selectAll('g')
-    .data(nodes)
-    .enter()
-    .append('g')
+    .data(finalNodes)
+    .enter().append('g')
     .attr('class', 'node')
-    .on('click', (event, d) => {
-      // Highlight node and animate
-      d3.select(event.currentTarget).select('circle')
-        .transition()
-        .duration(200)
-        .attr('r', 12)
-        .transition()
-        .duration(200)
-        .attr('r', 8);
-    })
-    .call(d3.drag()
-      .on('start', dragstarted)
-      .on('drag', dragged)
-      .on('end', dragended));
+    .call(drag(simulation));
 
-  node.append('circle')
-    .attr('r', 8)
-    .attr('fill', d => color(d.group))
-    .attr('stroke', d => d3.color(color(d.group)).darker(0.5))
-    .attr('stroke-width', 3);
+  // Custom shapes and sizes for different node types
+  node.each(function(d) {
+    const group = d3.select(this);
+    if (d.group === 'Database') {
+      // Larger, distinct shape for the central DB node
+      group.append('circle')
+        .attr('r', 20)
+        .attr('fill', color(d.group))
+        .attr('stroke', '#ffcc00')
+        .attr('stroke-width', 3);
+    } else if (d.group === 'Document') {
+      group.append('rect')
+        .attr('width', 18)
+        .attr('height', 18)
+        .attr('x', -9)
+        .attr('y', -9)
+        .attr('rx', 3)
+        .attr('fill', color(d.group))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+    } else {
+      group.append('circle')
+        .attr('r', 10)
+        .attr('fill', color(d.group))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+    }
+  });
 
   node.append('text')
-    .attr('dx', 12)
-    .attr('dy', '.35em')
     .text(d => d.label)
-    .style('font-size', '13px')
+    .attr('dy', '0.35em')
+    .attr('dx', d => d.group === 'Database' ? 25 : 14) // Adjust label position
+    .style('font-size', '12px')
     .style('font-family', 'Inter, sans-serif')
-    .style('fill', '#1a1a1a');
+    .style('fill', '#f1f1f1')
+    .style('text-shadow', '0 0 5px #1a1a1a, 0 0 5px #1a1a1a');
 
   node.append('title')
     .text(d => `${d.label} (${d.group})`);
 
   simulation.on('tick', () => {
-    link
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
-
-    node
-      .attr('transform', d => `translate(${d.x},${d.y})`);
-
-    linkText
-      .attr('x', d => (d.source.x + d.target.x) / 2)
-      .attr('y', d => (d.source.y + d.target.y) / 2);
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+    linkText.attr('x', d => (d.source.x + d.target.x) / 2)
+            .attr('y', d => (d.source.y + d.target.y) / 2);
   });
 
-  // Auto-fit graph
-  setTimeout(() => {
-    const bounds = svg.node().getBBox();
-    if (bounds.width > 0 && bounds.height > 0) {
-      const scale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
-      svg.transition()
-        .duration(400)
-        .attr('transform', `scale(${scale}) translate(${-bounds.x + width/(2*scale)},${-bounds.y + height/(2*scale)})`);
+  const zoom = d3.zoom().scaleExtent([0.2, 7]).on('zoom', (event) => {
+    g.attr('transform', event.transform);
+  });
+  svg.call(zoom);
+
+  function drag(simulation) {
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x; d.fy = d.y;
     }
-  }, 2000);
-
-  function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
+    function dragged(event, d) {
+      d.fx = event.x; d.fy = event.y;
+    }
+    function dragended(event, d) {
+      // Unfix the DB node so it can be re-centered on next run
+      if (d.id === 'db_center') {
+          d.fx = null;
+          d.fy = null;
+      }
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null; d.fy = null;
+    }
+    return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
 
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
-
-  function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
-
-  // Show export button with animation
   exportBtn.style.display = 'inline-block';
   exportBtn.style.opacity = '0';
   exportBtn.style.transform = 'translateY(10px)';
@@ -331,58 +354,65 @@ function renderGraph(nodes, edges) {
   }, 500);
 
   exportBtn.onclick = () => {
-    // Convert SVG to PNG
-    const svgElement = graphContainer.querySelector('svg');
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgElement);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const currentTransform = d3.zoomTransform(svg.node());
+    g.attr('transform', null);
+    const bounds = g.node().getBBox();
+    const padding = 40;
+    const framedSvgString = `<svg width="${bounds.width + padding * 2}" height="${bounds.height + padding * 2}" viewBox="${bounds.x - padding} ${bounds.y - padding} ${bounds.width + padding * 2} ${bounds.height + padding * 2}" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          .node text { font-family: Inter, sans-serif; font-size:12px; fill: #f1f1f1; text-shadow: 0 0 5px #1a1a1a, 0 0 5px #1a1a1a; }
+          .link-label-text { font-family: Inter, sans-serif; font-size: 10px; fill: #f0f0f0; text-anchor: middle; paint-order: stroke; stroke: #181818; stroke-width: 3px; }
+        </style>
+        ${g.node().innerHTML}
+      </svg>`;
+    g.attr('transform', currentTransform);
+    const svgBlob = new Blob([framedSvgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
-
+    const img = new Image();
     img.onload = () => {
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0);
-      const link = document.createElement('a');
-      link.download = 'knowledge-graph.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      URL.revokeObjectURL(url);
-
-      // Visual feedback
-      exportBtn.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        exportBtn.style.transform = 'scale(1)';
-      }, 150);
+        const scaleFactor = 3;
+        const canvas = document.createElement('canvas');
+        canvas.width = (bounds.width + padding * 2) * scaleFactor;
+        canvas.height = (bounds.height + padding * 2) * scaleFactor;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#211f24';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const link = document.createElement('a');
+        link.download = 'knowledge-graph.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        URL.revokeObjectURL(url);
     };
     img.src = url;
+    exportBtn.style.transform = 'scale(0.95)';
+    setTimeout(() => { exportBtn.style.transform = 'scale(1)'; }, 150);
   };
 }
+
+// =========================================================================
+// === UNMODIFIED ORIGINAL CODE CONTINUES ==================================
+// =========================================================================
 
 // Enhanced document card interaction
 docsContainer.addEventListener('click', (e) => {
   const card = e.target.closest('.doc-card');
   if (card) {
     const nodeId = card.id.replace("doc-", "doc_");
-    // Highlight corresponding node in D3.js graph
     d3.selectAll('.node')
       .filter(d => d.id === nodeId)
       .select('circle')
       .transition()
       .duration(200)
-      .attr('r', 12)
+      .attr('r', 15)
       .transition()
       .duration(200)
       .attr('r', 8);
-
-    // Visual feedback for card
     card.style.transform = 'translateY(-8px) scale(1.02)';
     card.style.boxShadow = 'var(--shadow-strong), var(--shadow-glow)';
     setTimeout(() => {
       card.style.transform = 'translateY(-4px)';
-      card.style.boxShadow = 'var(--shadow-strong)';
+      card.style.boxShadow = 'var(--strong)';
     }, 200);
   }
 });
