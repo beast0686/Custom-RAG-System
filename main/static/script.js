@@ -207,7 +207,6 @@ function renderGraph(nodes, edges) {
   const width = container.clientWidth;
   const height = container.clientHeight;
 
-  // --- NEW LOGIC: Introduce a central DB node and link documents to it ---
   const dbNode = { id: "db_center", label: "DB", group: "Database", fx: width / 2, fy: height / 2 };
   const finalNodes = [dbNode, ...nodes];
 
@@ -217,7 +216,6 @@ function renderGraph(nodes, edges) {
 
   const finalEdges = [...edges, ...docLinks];
   const links = finalEdges.map(e => ({ source: e.from || e.source, target: e.to || e.target, relation: e.relation }));
-  // --- END OF NEW LOGIC ---
 
   const svg = d3.select(container)
     .append('svg')
@@ -227,14 +225,13 @@ function renderGraph(nodes, edges) {
   const g = svg.append("g");
 
   const color = d3.scaleOrdinal()
-    .domain(['Database', 'Document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product'])
-    .range(['#ff7f0e', '#4e79a7', '#f28e2c', '#59a14f', '#e15759', '#76b7b2', '#af7aa1', '#ff9da7', '#9c755f']);
+    .domain(['Database', 'Document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product', 'Inferred'])
+    .range(['#ff7f0e', '#4e79a7', '#f28e2c', '#59a14f', '#e15759', '#76b7b2', '#af7aa1', '#ff9da7', '#9c755f', '#bab0ab']);
 
-  // --- Physics simulation tuned for the new DB Hub model ---
   const simulation = d3.forceSimulation(finalNodes)
     .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.relation ? 120 : 70).strength(1))
     .force("charge", d3.forceManyBody().strength(-400))
-    .force("center", d3.forceCenter(width / 2, height / 2).strength(0.2)) // Gently pull everything to center
+    .force("center", d3.forceCenter(width / 2, height / 2).strength(0.2))
     .force("collision", d3.forceCollide().radius(25));
 
   const link = g.append('g')
@@ -242,7 +239,7 @@ function renderGraph(nodes, edges) {
     .selectAll('line')
     .data(links)
     .enter().append('line')
-    .attr('stroke', d => d.relation ? '#999' : '#555') // Make DB links darker
+    .attr('stroke', d => d.relation ? '#999' : '#555')
     .attr('stroke-opacity', 0.8)
     .attr('stroke-width', 1.5);
 
@@ -254,14 +251,13 @@ function renderGraph(nodes, edges) {
     .attr('class', 'link-label-text')
     .text(d => d.relation || '')
     .attr('font-size', '10px')
-    .attr('fill', '#f0f0f0')
     .attr('text-anchor', 'middle')
-    // This line removes the bold styling.
-    .style('font-weight', 'normal') // or 400
+    .style('font-weight', 'normal')
+    .attr('fill', '#000000')
     .style('paint-order', 'stroke')
-    .style('stroke', '#181818')
-    .style('stroke-width', '3px');
-
+    .style('stroke', '#ffffff')
+    .style('stroke-width', '1px')
+    .style('stroke-linecap', 'round');
 
   const node = g.append('g')
     .attr('class', 'nodes')
@@ -269,41 +265,52 @@ function renderGraph(nodes, edges) {
     .data(finalNodes)
     .enter().append('g')
     .attr('class', 'node')
+    .style('cursor', 'pointer')
     .call(drag(simulation));
 
-  // Custom shapes and sizes for different node types
+  // Document click handler remains unchanged
+  node.on('click', (event, d) => {
+    if (d.group === 'Document') {
+      const cardId = d.id.replace('doc_', 'doc-');
+      const cardElement = document.getElementById(cardId);
+      if (cardElement) {
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cardElement.style.transition = 'all 0.3s ease-in-out';
+        cardElement.style.transform = 'scale(1.05)';
+        cardElement.style.boxShadow = '0 0 20px rgba(78, 121, 167, 0.7)';
+        setTimeout(() => {
+          cardElement.style.transform = 'scale(1)';
+          cardElement.style.boxShadow = '';
+        }, 1500);
+      }
+    }
+  });
+
+  // --- NEW: Add a double-click handler to "unstick" nodes ---
+  node.on('dblclick', (event, d) => {
+    if (d.id !== 'db_center') { // Don't unfix the central DB node
+      d.fx = null;
+      d.fy = null;
+      // Gently reheat the simulation to allow the graph to readjust
+      simulation.alpha(0.3).restart();
+    }
+  });
+
   node.each(function(d) {
     const group = d3.select(this);
     if (d.group === 'Database') {
-      // Larger, distinct shape for the central DB node
-      group.append('circle')
-        .attr('r', 20)
-        .attr('fill', color(d.group))
-        .attr('stroke', '#ffcc00')
-        .attr('stroke-width', 3);
+      group.append('circle').attr('r', 20).attr('fill', color(d.group)).attr('stroke', '#ffcc00').attr('stroke-width', 3);
     } else if (d.group === 'Document') {
-      group.append('rect')
-        .attr('width', 18)
-        .attr('height', 18)
-        .attr('x', -9)
-        .attr('y', -9)
-        .attr('rx', 3)
-        .attr('fill', color(d.group))
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2);
+      group.append('rect').attr('width', 18).attr('height', 18).attr('x', -9).attr('y', -9).attr('rx', 3).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
     } else {
-      group.append('circle')
-        .attr('r', 10)
-        .attr('fill', color(d.group))
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2);
+      group.append('circle').attr('r', 10).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
     }
   });
 
   node.append('text')
     .text(d => d.label)
     .attr('dy', '0.35em')
-    .attr('dx', d => d.group === 'Database' ? 25 : 14) // Adjust label position
+    .attr('dx', d => d.group === 'Database' ? 25 : 14)
     .style('font-size', '12px')
     .style('font-family', 'Inter, sans-serif')
     .style('fill', '#f1f1f1')
@@ -328,20 +335,21 @@ function renderGraph(nodes, edges) {
   function drag(simulation) {
     function dragstarted(event, d) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x; d.fy = d.y;
+      d.fx = d.x;
+      d.fy = d.y;
     }
     function dragged(event, d) {
-      d.fx = event.x; d.fy = event.y;
+      d.fx = event.x;
+      d.fy = event.y;
     }
+
+    // --- MODIFIED: This function now makes nodes "stick" ---
     function dragended(event, d) {
-      // Unfix the DB node so it can be re-centered on next run
-      if (d.id === 'db_center') {
-          d.fx = null;
-          d.fy = null;
-      }
       if (!event.active) simulation.alphaTarget(0);
-      d.fx = null; d.fy = null;
+      // By NOT setting d.fx and d.fy to null, we keep the node fixed
+      // where the user dropped it. Double-clicking will now release it.
     }
+
     return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
 
@@ -361,7 +369,7 @@ function renderGraph(nodes, edges) {
     const framedSvgString = `<svg width="${bounds.width + padding * 2}" height="${bounds.height + padding * 2}" viewBox="${bounds.x - padding} ${bounds.y - padding} ${bounds.width + padding * 2} ${bounds.height + padding * 2}" xmlns="http://www.w3.org/2000/svg">
         <style>
           .node text { font-family: Inter, sans-serif; font-size:12px; fill: #f1f1f1; text-shadow: 0 0 5px #1a1a1a, 0 0 5px #1a1a1a; }
-          .link-label-text { font-family: Inter, sans-serif; font-size: 10px; fill: #f0f0f0; text-anchor: middle; paint-order: stroke; stroke: #181818; stroke-width: 3px; }
+          .link-label-text { font-family: Inter, sans-serif; font-size: 10px; fill: #1a1a1a; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 2px; stroke-linecap: round; }
         </style>
         ${g.node().innerHTML}
       </svg>`;
@@ -389,10 +397,6 @@ function renderGraph(nodes, edges) {
     setTimeout(() => { exportBtn.style.transform = 'scale(1)'; }, 150);
   };
 }
-
-// =========================================================================
-// === UNMODIFIED ORIGINAL CODE CONTINUES ==================================
-// =========================================================================
 
 // Enhanced document card interaction
 docsContainer.addEventListener('click', (e) => {

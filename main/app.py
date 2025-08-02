@@ -10,7 +10,6 @@ import re
 import json
 from openai import OpenAI
 
-# --- InsightGraph: Knowledge Graph Extraction Service ---
 
 # Load environment variables from .env file
 os.environ.pop("SSL_CERT_FILE", None)
@@ -113,7 +112,7 @@ def query():
     - "name": The name of the entity.
     - "type": The entity type (e.g., "Person", "Organization", "Technology").
     - "source_document_id": The ID of the document where this entity was found.
-    
+
     Example output format:
     {{
       "entities": [
@@ -164,7 +163,7 @@ def query():
         Then, provide a paragraph long summary cum explanation of the most relevant documents used to answer the query.
         Do not exceed 100 words.
         Refer to the number and ID's of documents used in your answer. Be clear about this and show it explicitly at the end of your answer as references.
-        Do not refer to the documents while providing the direct answer.  
+        Do not refer to the documents while providing the direct answer.
         """
         client2 = OpenAI(api_key = baseten_api_key, base_url = "https://inference.baseten.co/v1")
         response = client2.chat.completions.create(
@@ -199,13 +198,28 @@ def query():
         if doc_node_id in unique_nodes:
             edges.append({"from": doc_node_id, "to": ent_id})
 
+    # MODIFIED SECTION: Dynamically create nodes for hallucinated entities
     entity_map = {e['name']: f"{e['type']}_{e['name']}".replace(" ", "_").lower() for e in all_entities_from_llm}
     for rel in parsed_output.get("relationships", []):
-        src_name, tgt_name = rel.get("source"), rel.get("target")
-        if src_name in entity_map and tgt_name in entity_map:
-            src_id = entity_map[src_name]
-            tgt_id = entity_map[tgt_name]
-            edges.append({"from": src_id, "to": tgt_id, "relation": rel.get("relation", "RELATED_TO")})
+        src_name = rel.get("source")
+        tgt_name = rel.get("target")
+
+        if not src_name or not tgt_name:
+            continue
+
+        for entity_name in [src_name, tgt_name]:
+            if entity_name not in entity_map:
+                print(f"[INFO] Hallucinated entity found: '{entity_name}'. Creating node.")
+                safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', entity_name)
+                new_id = f"inferred_{safe_name}".lower()
+                if new_id not in unique_nodes:
+                    unique_nodes[new_id] = {"id": new_id, "label": entity_name, "group": "Inferred"}
+                entity_map[entity_name] = new_id
+
+        src_id = entity_map[src_name]
+        tgt_id = entity_map[tgt_name]
+        edges.append({"from": src_id, "to": tgt_id, "relation": rel.get("relation", "RELATED_TO")})
+    # END OF MODIFIED SECTION
 
     nodes = list(unique_nodes.values())
 
@@ -218,14 +232,12 @@ def query():
                     ON CREATE SET d.title = $label, d.session = $sid
                 """, id = node_data['id'], label = node_data['label'], sid = session_id)
             else:
-                # Sanitize group label
                 safe_label = re.sub(r'[^a-zA-Z0-9_]', '_', node_data['group'])
                 session.run(f"""
                     MERGE (e:{safe_label} {{id: $id}})
                     ON CREATE SET e.name = $label, e.session = $sid
                 """, id = node_data['id'], label = node_data['label'], sid = session_id)
 
-        # --- Add central "DB" node and link it to all documents ---
         session.run("""
             MERGE (c:Center {id: "db"})
             ON CREATE SET c.label = "DB"
@@ -235,20 +247,22 @@ def query():
                 session.run("""
                     MATCH (c:Center {id: "db"}), (d:Document {id: $doc_id})
                     MERGE (c)-[:CONTAINS]->(d)
-                """, doc_id=node_data["id"])
+                """, doc_id = node_data["id"])
 
         for edge_data in edges:
             if edge_data.get('relation'):
                 rel_type = re.sub(r'[^a-zA-Z0-9_]', '', edge_data['relation'].replace(" ", "_").upper())
-                session.run(f"""
-                    MATCH (a {{id: $src}}), (b {{id: $tgt}})
-                    MERGE (a)-[r:{rel_type}]->(b)
-                """, src = edge_data['from'], tgt = edge_data['to'])
+                if rel_type:
+                    session.run(f"""
+                        MATCH (a {{id: $src}}), (b {{id: $tgt}})
+                        MERGE (a)-[r:{rel_type}]->(b)
+                    """, src = edge_data['from'], tgt = edge_data['to'])
             else:
                 session.run("""
                     MATCH (d:Document {id: $src}), (e {id: $tgt})
                     MERGE (d)-[:MENTIONS]->(e)
                 """, src = edge_data['from'], tgt = edge_data['to'])
+
     return jsonify({
         "retrieved_docs": retrieved_docs_for_frontend,
         "nodes": nodes,
@@ -265,4 +279,4 @@ def cleanup(session_id):
 
 
 if __name__ == '__main__':
-    app.run(debug = True, port = 5001)
+    app.run(debug = True, port = 5001, use_reloader=False)
