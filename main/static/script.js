@@ -9,6 +9,13 @@ const exportBtn = document.getElementById('export-graph');
 let graphSessionId = null;
 const kSlider = document.getElementById('k-slider');
 const kLabel = document.getElementById('k-value-label');
+const compareBtn = document.getElementById('compare-btn');
+const comparisonSection = document.getElementById('comparison-section');
+const comparisonLoader = document.getElementById('comparison-loader');
+const comparisonResultsContainer = document.getElementById('comparison-results-container');
+const plainLlmAnswer = document.getElementById('plain-llm-answer');
+const mongodbRagAnswer = document.getElementById('mongodb-rag-answer');
+const neo4jKgRagAnswer = document.getElementById('neo4j-kg-rag-answer');
 
 // Enhanced slider interaction
 kSlider.addEventListener('input', () => {
@@ -59,7 +66,13 @@ form.addEventListener('submit', async (event) => {
   // Hide previous results with fade out
   const answerContainer = document.getElementById("answer-container");
   const answerText = document.getElementById("answer-text");
-
+  if (comparisonSection.style.display !== 'none') {
+      comparisonSection.style.opacity = '0';
+      comparisonSection.style.transform = 'translateY(-20px)';
+      setTimeout(() => {
+          comparisonSection.style.display = 'none';
+      }, 300);
+  }
   if (answerContainer.style.display !== 'none') {
     answerContainer.style.opacity = '0';
     answerContainer.style.transform = 'translateY(-20px)';
@@ -116,7 +129,10 @@ form.addEventListener('submit', async (event) => {
     }
 
     graphSessionId = data.session_id;
-
+    comparisonSection.style.display = 'flex';
+    comparisonSection.style.opacity = '1'; // This is the missing line
+    comparisonSection.style.transform = 'translateY(0)'; // Reset the transform
+    comparisonResultsContainer.style.display = 'none';
     // Show documents with staggered animation
     if (data.retrieved_docs?.length > 0) {
       docsContainer.innerHTML = `<h2>Retrieved Documents</h2>`;
@@ -435,4 +451,50 @@ window.addEventListener('scroll', () => {
   const scrolled = window.pageYOffset;
   const rate = scrolled * -0.3;
   document.body.style.backgroundPosition = `0 ${rate}px`;
+});
+
+// Add this new event listener to the end of the file
+
+compareBtn.addEventListener('click', async () => {
+    if (!graphSessionId) {
+        showError("Please perform a query first before comparing results.");
+        return;
+    }
+
+    // Show loader and disable button to prevent multiple clicks
+    comparisonLoader.style.display = 'block';
+    comparisonResultsContainer.style.display = 'none';
+    compareBtn.disabled = true;
+    compareBtn.textContent = 'Comparing...';
+
+    try {
+        const response = await fetch('/generate_comparison', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: graphSessionId })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || `HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Populate the results
+        plainLlmAnswer.innerText = data.plain_llm_answer;
+        mongodbRagAnswer.innerText = data.mongodb_rag_answer;
+        neo4jKgRagAnswer.innerText = data.neo4j_kg_rag_answer;
+
+        // Show the results container
+        comparisonResultsContainer.style.display = 'block';
+
+    } catch (error) {
+        showError(error.message || "Failed to generate comparison.");
+    } finally {
+        // Hide loader and re-enable button
+        comparisonLoader.style.display = 'none';
+        compareBtn.disabled = false;
+        compareBtn.textContent = 'Compare Generation Methods';
+    }
 });

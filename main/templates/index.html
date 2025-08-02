@@ -60,6 +60,30 @@
   </div>
 </div>
 
+<div id="comparison-section">
+  <button id="compare-btn">Compare Generation Methods</button>
+  <div class="loader" id="comparison-loader" style="display:none;"></div>
+  <div id="comparison-results-container" style="display:none;">
+    <h2>Comparison of Answers</h2>
+    <h2>Model: meta-llama/Llama-4-Scout-17B-16E-Instruct</h2>
+    <div class="comparison-grid">
+      <div class="comparison-column">
+        <h3>Plain LLM</h3>
+        <p id="plain-llm-answer"></p>
+      </div>
+      <div class="comparison-column">
+        <h3>MongoDB RAG</h3>
+        <p id="mongodb-rag-answer"></p>
+      </div>
+      <div class="comparison-column">
+        <h3>Neo4j KG RAG</h3>
+        <p id="neo4j-kg-rag-answer"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

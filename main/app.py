@@ -27,12 +27,15 @@ baseten_api_key = os.getenv("BASETEN_API_KEY")
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_USERNAME")
 neo4j_password = os.getenv("NEO4J_PASSWORD")
-neo4j_driver = GraphDatabase.driver(neo4j_uri, auth = (neo4j_user, neo4j_password))
+neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
 # --- Local Model Clients ---
 print("\n[INFO] Loading local sentence transformer model...")
 LOCAL_EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
 print("[INFO] Embedding model loaded successfully.")
+
+# --- In-memory Cache for Comparison ---
+comparison_cache = {}
 
 
 # --- Utility Functions ---
@@ -51,7 +54,7 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/query", methods = ["POST"])
+@app.route("/query", methods=["POST"])
 def query():
     data = request.get_json()
     user_query = data.get("query", "")
@@ -61,7 +64,7 @@ def query():
 
     # 1. Fetch documents from MongoDB
     try:
-        query_vector = LOCAL_EMBEDDING_MODEL.encode(user_query, normalize_embeddings = True).tolist()
+        query_vector = LOCAL_EMBEDDING_MODEL.encode(user_query, normalize_embeddings=True).tolist()
     except Exception as e:
         return jsonify({"error": f"Failed to generate query embedding: {e}"}), 500
 
@@ -96,11 +99,16 @@ def query():
     docs_text = "\n\n".join(docs_text_parts)
 
     # 3. LLM Prompting
-    client = Together(api_key = os.getenv("TOGETHER_API_KEY"))
+    client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
     prompt = f"""
     You are a powerful system that extracts a structured knowledge graph from a collection of documents.
     Each document is tagged with a 'Document ID'.
-
+    
+    **CRITICAL RULE: The 'source' entity MUST be the entity that PERFORMS the action ('relation') on the 'target' entity. Do not invert the relationship.**
+    -   **Correct Example**: If the text is "IBM announced the development of Infoscope", the output MUST be:
+        `{{'source': 'IBM', 'relation': 'DEVELOPED', 'target': 'Infoscope'}}`
+    -   **Incorrect Example**: Do NOT output `{{'source': 'Infoscope', 'relation': 'DEVELOPED_BY', 'target': 'IBM'}}`. Always make the actor the source.
+    
     Your task is to:
     1. Extract a list of named entities. For EACH entity, you MUST specify the ID of the document it came from.
     2. Extract a list of relationships between those entities.
@@ -135,8 +143,8 @@ def query():
     try:
         print("[INFO] Sending single batch prompt to Together AI...")
         response = client.chat.completions.create(
-            model = "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-            messages = [{"role": "user", "content": prompt}]
+            model="Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+            messages=[{"role": "user", "content": prompt}]
         )
         parsed_output = extract_json_from_string(response.choices[0].message.content)
         print(parsed_output)
@@ -149,8 +157,8 @@ def query():
     # 3.5 Generate paragraph answer
     try:
         context_text = "\n\n".join([
-            f"Title: {doc['title']}\nSummary: {doc['summary']}\nKeywords: {doc['keywords']}"
-            for doc in retrieved_docs_for_frontend
+            f"Title: {doc.get('title', '[No title]')}\nSummary: {doc.get('summary', '[No summary]')}\nKeywords: {', '.join(doc.get('keywords', []))}"
+            for doc in docs
         ])
         answer_prompt = f"""
         You are a helpful assistant that answers user queries using the provided documents.
@@ -159,17 +167,17 @@ def query():
         Query: {user_query}
         Documents:
         {context_text}
-        Answer the query using the above documents. Your first two sentences should directly answer the query.
+        Answer the query using the above documents. Your first 3-5 sentences should directly answer the query.
         Then, provide a paragraph long summary cum explanation of the most relevant documents used to answer the query.
-        Do not exceed 100 words.
+        Do not exceed 150 words.
         Refer to the number and ID's of documents used in your answer. Be clear about this and show it explicitly at the end of your answer as references.
         Do not refer to the documents while providing the direct answer.
         """
-        client2 = OpenAI(api_key = baseten_api_key, base_url = "https://inference.baseten.co/v1")
+        client2 = OpenAI(api_key=baseten_api_key, base_url="https://inference.baseten.co/v1")
         response = client2.chat.completions.create(
-            model = "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-            messages = [{"role": "user", "content": answer_prompt}],
-            max_tokens = 1000,
+            model="meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            messages=[{"role": "user", "content": answer_prompt}],
+            max_tokens=1000,
         )
         paragraph_answer = response.choices[0].message.content
     except Exception as e:
@@ -179,6 +187,7 @@ def query():
     session_id = str(uuid.uuid4())
     nodes, edges = [], []
     unique_nodes = {}
+
 
     referenced_doc_ids = {ent.get("source_document_id") for ent in parsed_output.get("entities", [])}
     for doc_data in retrieved_docs_for_frontend:
@@ -230,13 +239,13 @@ def query():
                 session.run("""
                     MERGE (d:Document {id: $id})
                     ON CREATE SET d.title = $label, d.session = $sid
-                """, id = node_data['id'], label = node_data['label'], sid = session_id)
+                """, id=node_data['id'], label=node_data['label'], sid=session_id)
             else:
                 safe_label = re.sub(r'[^a-zA-Z0-9_]', '_', node_data['group'])
                 session.run(f"""
                     MERGE (e:{safe_label} {{id: $id}})
                     ON CREATE SET e.name = $label, e.session = $sid
-                """, id = node_data['id'], label = node_data['label'], sid = session_id)
+                """, id=node_data['id'], label=node_data['label'], sid=session_id)
 
         session.run("""
             MERGE (c:Center {id: "db"})
@@ -247,7 +256,7 @@ def query():
                 session.run("""
                     MATCH (c:Center {id: "db"}), (d:Document {id: $doc_id})
                     MERGE (c)-[:CONTAINS]->(d)
-                """, doc_id = node_data["id"])
+                """, doc_id=node_data["id"])
 
         for edge_data in edges:
             if edge_data.get('relation'):
@@ -256,13 +265,20 @@ def query():
                     session.run(f"""
                         MATCH (a {{id: $src}}), (b {{id: $tgt}})
                         MERGE (a)-[r:{rel_type}]->(b)
-                    """, src = edge_data['from'], tgt = edge_data['to'])
+                    """, src=edge_data['from'], tgt=edge_data['to'])
             else:
                 session.run("""
                     MATCH (d:Document {id: $src}), (e {id: $tgt})
                     MERGE (d)-[:MENTIONS]->(e)
-                """, src = edge_data['from'], tgt = edge_data['to'])
-
+                """, src=edge_data['from'], tgt=edge_data['to'])
+    all_entity_names = list(entity_map.keys())
+    comparison_cache[session_id] = {
+        "query": user_query,
+        "docs": docs,
+        "mongodb_rag_answer": paragraph_answer,
+        "extracted_entities": all_entity_names,
+        "document_info": retrieved_docs_for_frontend
+    }
     return jsonify({
         "retrieved_docs": retrieved_docs_for_frontend,
         "nodes": nodes,
@@ -271,12 +287,124 @@ def query():
         "answer": paragraph_answer or "No answer generated."
     })
 
-@app.route("/cleanup/<session_id>", methods = ['POST'])
+@app.route("/generate_comparison", methods=["POST"])
+def generate_comparison():
+    data = request.get_json()
+    session_id = data.get("session_id")
+
+    if not session_id or session_id not in comparison_cache:
+        return jsonify({"error": "Invalid or expired session ID."}), 404
+
+    cached_data = comparison_cache[session_id]
+    user_query = cached_data["query"]
+    docs = cached_data["docs"]
+
+    # --- Initialize Baseten Client ---
+    baseten_client = OpenAI(api_key=baseten_api_key, base_url="https://inference.baseten.co/v1")
+    model_name = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+
+    # --- 1. Plain LLM Answer ---
+    try:
+        plain_prompt = f"""
+        You are a helpful assistant. Answer the following user query directly based on your general knowledge.
+        Be concise and do not exceed 150 words. Do not exceed a paragraph.
+        Do not use bold or italic formatting. Keep the answer plain-text and simple.
+        Query: {user_query}
+        """
+        response = baseten_client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": plain_prompt}],
+            max_tokens=1000,
+        )
+        plain_llm_answer = response.choices[0].message.content
+    except Exception as e:
+        plain_llm_answer = f"[Plain LLM answer generation failed: {e}]"
+
+    # --- 2. MongoDB Vector Search Based LLM Answer (from cache) ---
+    mongodb_rag_answer = cached_data.get("mongodb_rag_answer", "[Answer not found in cache]")
+
+    # --- 3. Neo4j + LLM Answer---
+    try:
+        # Step 3.1: Get the pre-extracted entity list from the cache
+        entities = cached_data.get("extracted_entities")
+        print(f"[INFO] Using pre-extracted entities for KG search: {entities}")
+
+        if not entities:
+            raise ValueError("No entities were pre-extracted from the documents.")
+        info = cached_data.get("document_info")
+        # Step 3.2: Query Neo4j to get the neighborhood of these entities
+        kg_context_triples = []
+        with neo4j_driver.session() as session:
+            cypher_query = """
+                UNWIND $entities AS entityName
+                MATCH (n) WHERE n.name CONTAINS entityName
+                MATCH (n)-[r]->(m)
+                WHERE m.name IS NOT NULL
+                RETURN n.name AS source, type(r) AS relation, m.name AS target
+                LIMIT 25
+            """
+            results = session.run(cypher_query, entities = entities)
+            for record in results:
+                kg_context_triples.append(f"({record['source']})-[:{record['relation']}]->({record['target']})")
+
+        kg_context = "\n".join(kg_context_triples)
+        print(f"[INFO] Retrieved KG context:\n{kg_context}")
+
+        if not kg_context:
+            neo4j_kg_rag_answer = "The entities extracted from the documents were not found in the knowledge graph."
+        else:
+            # Step 3.3: Pass the KG context to the LLM to generate an answer
+            kg_rag_prompt = f"""
+                You are an assistant that answers queries using the provided Knowledge Graph context.
+                Answer the user's query using ONLY the facts from the context below. Do not use any prior knowledge.
+                If the context does not contain the answer, say so.
+                Keep the answer concise and do not exceed 150 words and one paragraph only. Do not use bold or italic formatting.
+                Take the kg context into account and generate an elaborate answer.
+                DO not mention about what you know and do not - use abstraction and professionalism.
+                
+                Do not explicitly mention "context" or "knowledge graph" or "mentioned entities" in your answer.
+                Use the information provided to refer to the entities and relationships without explicitly stating them.
+                Query: {user_query}
+
+                Knowledge Graph Context:
+                ---
+                {kg_context}
+                ---
+                
+                Document Information:
+                ---
+                {info}
+                ---
+
+                Answer:
+                """
+            response = baseten_client.chat.completions.create(
+                model = model_name,
+                messages = [{"role": "user", "content": kg_rag_prompt}],
+                max_tokens = 1000,
+            )
+            neo4j_kg_rag_answer = response.choices[0].message.content
+
+    except Exception as e:
+        neo4j_kg_rag_answer = f"[KG RAG answer generation failed: {e}]"
+        print(f"[ERROR] KG RAG answer generation failed: {e}")
+
+    return jsonify({
+        "plain_llm_answer": plain_llm_answer,
+        "mongodb_rag_answer": mongodb_rag_answer,
+        "neo4j_kg_rag_answer": neo4j_kg_rag_answer
+    })
+
+
+@app.route("/cleanup/<session_id>", methods=['POST'])
 def cleanup(session_id):
     with neo4j_driver.session() as session:
-        session.run("MATCH (n {session: $sid}) DETACH DELETE n", sid = session_id)
+        session.run("MATCH (n {session: $sid}) DETACH DELETE n", sid=session_id)
+    # Also remove from cache
+    if session_id in comparison_cache:
+        del comparison_cache[session_id]
     return f"Cleanup complete for session {session_id}"
 
 
 if __name__ == '__main__':
-    app.run(debug = True, port = 5001, use_reloader=False)
+    app.run(debug=True, port=5001, use_reloader=False)

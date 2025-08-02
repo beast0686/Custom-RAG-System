@@ -345,7 +345,7 @@ h2::before {
   height: 60px;
   position: relative;
   display: none;
-  margin: 40px 0;
+  margin: 40px auto;
 }
 
 .loader::before {
@@ -366,12 +366,8 @@ h2::before {
   left: 8px;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: var(--primary-medium);
-  animation: spin 1.5s linear infinite reverse;
+  /* ... */
 }
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -558,39 +554,46 @@ h2::before {
 }
 
 #export-graph {
-  padding: 0.6rem 1.2rem;
-  font-size: 0.875rem;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(to right, #b388ff, #ce93d8);
+  /* Sizing and Style */
+  padding: 18px 48px;
+  min-width: 200px;
+  background: var(--gradient-button);
   color: white;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-#export-graph:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-glow);
-}
-
-#export-graph {
-  background: var(--gradient-primary);
-  color: var(--primary-deep);
-  border: none;
-  padding: 12px 24px;
-  margin-top: 20px;
-  cursor: pointer;
-  border-radius: var(--radius-lg);
+  font-size: 1rem;
   font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-soft);
+  border: none;
+  border-radius: var(--radius-full);
+
+  /* Positioning and Effects */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow-medium);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Initial State */
   display: none;
 }
 
+#export-graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 #export-graph:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-medium);
-  filter: brightness(1.1);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-strong), var(--shadow-glow);
+  filter: brightness(1.05);
+}
+
+#export-graph:hover::before {
+  left: 100%;
 }
 
 #legend {
@@ -727,4 +730,93 @@ h2::before {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gradient-button);
+}
+
+/* ======================================== */
+/* == Comparison Section Styles == */
+/* ======================================== */
+
+#comparison-section {
+  width: 100%;
+  max-width: 900px;
+  margin: 3rem auto;
+  animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+
+  /* New styles for robust centering */
+  flex-direction: column;
+  align-items: center;
+  display: none;
+}
+
+#compare-btn {
+  padding: 18px 48px;
+  min-width: 200px;
+  background: var(--gradient-button);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-medium);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  /* Uses the same transitions and effects as your main submit button */
+}
+
+#compare-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-strong), var(--shadow-glow);
+  filter: brightness(1.05);
+}
+
+#compare-btn:active {
+  transform: translateY(-1px);
+}
+
+#comparison-results-container {
+  width: 100%;
+  margin-top: 2rem;
+  /* Animation will trigger when the container is displayed */
+  animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  text-align: left;
+}
+
+.comparison-column {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(149, 117, 205, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-soft);
+}
+
+.comparison-column:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+  border-color: rgba(149, 117, 205, 0.25);
+}
+
+.comparison-column h3 {
+  color: var(--primary-deep);
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-light);
+  padding-bottom: 0.75rem;
+}
+
+.comparison-column p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
 }
