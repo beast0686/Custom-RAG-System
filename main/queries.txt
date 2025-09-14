@@ -1,0 +1,165 @@
+Queries:
+
+Science:
+1.Is time travel possible?
+2.What is quantum physics?
+3.What are black holes?
+4.How do vaccines work?
+5.What is DNA?
+6.Tell me about evolution.
+7.Are GMOs safe?
+8.What is climate change?
+9.How does photosynthesis work?
+10.Who was Albert Einstein?
+11.What is artificial intelligence?
+12.Are we alone in the universe?
+13.What is gravity?
+14.How do stars form?
+15.What are stem cells?
+16.Is nuclear energy clean?
+17.Who was Marie Curie?
+18.What is dark matter?
+19.What causes earthquakes?
+20.How does the human brain work?
+21.What are the planets?
+22.What is gene editing?
+
+Travel
+23. What are good places to travel?
+24. Best beaches in the world?
+25. How to travel on a budget?
+26. What are some top landmarks?
+27. Is solo travel safe?
+28. Where is Machu Picchu?
+29. Things to do in Paris?
+30. What is ecotourism?
+31. Best time to visit Japan?
+32. How to find cheap flights?
+33. What are US national parks?
+34. Is Italy expensive to visit?
+35. What to see in Egypt?
+36. Best food destinations?
+37. What are travel essentials?
+38. Top European cities?
+39. What is backpacking?
+40. Adventure travel ideas?
+41. Where is the Grand Canyon?
+42. How to pack a suitcase?
+43. Safest countries to visit?
+
+AP News / General News
+44. What is NATO?
+45. What are current global issues?
+46. Tell me about space exploration.
+47. What is a trade war?
+48. What are supply chain problems?
+49. What is global inflation?
+50. Who are the world leaders?
+51. What are international sanctions?
+52. What is cybersecurity?
+53. Tell me about climate agreements.
+54. What is foreign policy?
+55. What is the United Nations?
+56. Are self-driving cars safe?
+57. What are renewable energy policies?
+58. What is a recession?
+59. How are elections held?
+60. What are major global conflicts?
+61. What is happening with AI?
+62. What is the G7 summit?
+63. What are human rights?
+
+Finance
+64. What is cryptocurrency?
+65. How does the stock market work?
+66. What is inflation?
+67. How to invest money?
+68. Is Bitcoin a good investment?
+69. What is a credit score?
+70. How to save for retirement?
+71. What is a mortgage?
+72. Are stocks a risky investment?
+73. What is a mutual fund?
+74. Tell me about interest rates.
+75. What is a blockchain?
+76. How do taxes work?
+77. What is a good budget?
+78. What is GDP?
+79. What is diversification?
+80. What does the World Bank do?
+81. Should I invest in gold?
+82. What is venture capital?
+83. How to avoid debt?
+84. What is a 401k?
+
+History
+85. What was the Roman Empire?
+86. Who was Julius Caesar?
+87. Why did World War I start?
+88. What was the Silk Road?
+89. Who were the Vikings?
+90. What was the Cold War?
+91. Tell me about ancient Egypt.
+92. Who was Cleopatra?
+93. What was the Renaissance?
+94. Tell me about the Titanic.
+95. What was the Industrial Revolution?
+96. Who was Alexander the Great?
+97. What was the French Revolution?
+98. What was ancient Greece like?
+99. Tell me about the Mongols.
+100. Who invented the printing press?
+101. What were medieval castles?
+102. The American Revolution.
+103. What was the Age of Discovery?
+104. Who were the samurai?
+105. What was the Mayan civilization?
+
+Wikipedia / General Knowledge
+106. What is philosophy?
+107. Who invented the internet?
+108. Tell me about world religions.
+109. What are the seven wonders?
+110. How do computers work?
+111. What is democracy?
+112. What are the Olympic Games?
+113. Tell me about classical music.
+114. What is mythology?
+115. Who are some famous artists?
+116. What is architecture?
+117. What are the different languages?
+118. Tell me about famous inventors.
+119. What are the main film genres?
+120. How does the internet work?
+121. What is literature?
+122. History of medicine.
+123. What are martial arts?
+124. What is chess?
+125. Tell me about photography.
+126. What is art?
+
+Tribune India / India-Related
+127. What is the Indian government?
+128. Tell me about the Taj Mahal.
+129. Who was Mahatma Gandhi?
+130. What is Bollywood?
+131. What are major Indian festivals?
+132. How is India's economy?
+133. What is cricket in India?
+134. Tell me about Indian cuisine.
+135. What are famous places in India?
+136. What is the Indian constitution?
+137. Who is the Prime Minister?
+138. What is yoga's origin?
+139. What is the caste system?
+140. Tell me about India's history.
+141. What is India's space program?
+142. What are monsoons in India?
+143. Major startups in India.
+144. What are major Indian rivers?
+145. What are Indian politics like?
+146. What to see in Delhi?
+147. India's role in technology.
+148. What is the festival of Diwali?
+149. Tell me about the Himalayas.
+150. Who are famous Indian actors?
