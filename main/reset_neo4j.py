@@ -8,6 +8,17 @@ import time
 # --- Configuration and Initialization ---
 
 # Load environment variables from .env file
+# Make sure your .env file is configured for your LOCAL Neo4j instance.
+# Example .env content:
+# MONGO_URI="mongodb://localhost:27017/"
+# MONGO_DB="your_mongo_db"
+# MONGO_COLLECTION="your_mongo_collection"
+#
+# # --- Local Neo4j Connection Settings ---
+# NEO4J_URI="bolt://localhost:7687"
+# NEO4J_USERNAME="neo4j"
+# NEO4J_PASSWORD="your_local_db_password"
+
 load_dotenv()
 
 # --- MongoDB Connection ---
@@ -23,8 +34,8 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 class MongoToNeo4jIngestor:
     """
-    A class focused solely on ingesting documents from MongoDB into Neo4j
-    as individual :Document nodes. It now includes a function to clear the database first.
+    A class focused solely on ingesting documents from MongoDB into a local Neo4j
+    database as individual :Document nodes. It includes a function to clear the database.
     """
 
     def __init__(self, mongo_client, neo4j_driver):
@@ -45,7 +56,7 @@ class MongoToNeo4jIngestor:
 
         # Countdown to give the user a chance to cancel
         for i in range(5, 0, -1):
-            print(f"  Starting in {i} seconds...", end = '\r')
+            print(f"  Starting in {i} seconds...", end='\r')
             time.sleep(1)
 
         print("\nClearing database in batches...")
@@ -95,7 +106,7 @@ class MongoToNeo4jIngestor:
         """
 
         with self.neo4j_driver.session() as session:
-            for doc in tqdm(documents_cursor, total = total_docs, desc = "Ingesting Documents"):
+            for doc in tqdm(documents_cursor, total=total_docs, desc="Ingesting Documents"):
                 props_to_set = {
                     "title": doc.get('title'),
                     "content": doc.get('content'),
@@ -108,6 +119,7 @@ class MongoToNeo4jIngestor:
                     "embedding": doc.get('embedding')
                 }
 
+                # Remove keys with None values to avoid storing them in Neo4j
                 props_to_set = {k: v for k, v in props_to_set.items() if v is not None}
 
                 params = {
@@ -133,11 +145,12 @@ if __name__ == "__main__":
     try:
         print("Connecting to MongoDB...")
         mongo_client = MongoClient(MONGO_URI)
+        # The ismaster command is cheap and does not require auth.
         mongo_client.admin.command('ping')
         print("MongoDB connection successful.")
 
-        print("Connecting to Neo4j Aura...")
-        neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth = (NEO4J_USER, NEO4J_PASSWORD))
+        print("Connecting to local Neo4j database...")
+        neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
         neo4j_driver.verify_connectivity()
         print("Neo4j connection successful.")
 

@@ -9,7 +9,18 @@ import os
 import re
 import json
 from openai import OpenAI
+import atexit
+import nltk
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from nltk.tokenize import word_tokenize
 
+# --- NLTK Setup ---
+try:
+    nltk.data.find('tokenizers/punkt')
+except nltk.downloader.DownloadError:
+    print("[INFO] NLTK 'punkt' not found. Downloading...")
+    nltk.download('punkt')
+    print("[INFO] Download complete.")
 
 # Load environment variables from .env file
 os.environ.pop("SSL_CERT_FILE", None)
@@ -37,10 +48,57 @@ print("[INFO] Embedding model loaded successfully.")
 # --- In-memory Cache for Comparison ---
 comparison_cache = {}
 
+# --- Metrics File ---
+METRICS_FILE = 'feedback_metrics.json'
 
 # --- Utility Functions ---
+def load_metrics():
+    if os.path.exists(METRICS_FILE):
+        with open(METRICS_FILE, 'r') as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+    return []
+
+def save_metrics(data):
+    with open(METRICS_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+# --- Metric Calculation Utilities ---
+def calculate_rouge_l_f1(candidate, reference):
+    """Calculates a simple ROUGE-L F1 score based on token overlap."""
+    if not candidate or not reference: return 0.0
+    candidate_tokens = set(word_tokenize(candidate.lower()))
+    reference_tokens = set(word_tokenize(reference.lower()))
+    if not candidate_tokens or not reference_tokens:
+        return 0.0
+    
+    intersect = len(candidate_tokens.intersection(reference_tokens))
+    precision = intersect / len(candidate_tokens)
+    recall = intersect / len(reference_tokens)
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+    return f1_score
+
+def calculate_bleu(candidate, reference):
+    """Calculates BLEU score with smoothing."""
+    if not candidate or not reference: return 0.0
+    candidate_tokens = word_tokenize(candidate.lower())
+    reference_tokens = [word_tokenize(reference.lower())] # Must be a list of reference sentences
+    if not candidate_tokens or not reference_tokens[0]:
+        return 0.0
+            
+    chencherry = SmoothingFunction()
+    return sentence_bleu(reference_tokens, candidate_tokens, smoothing_function=chencherry.method1)
+
+# Initialize metrics file
+all_metrics = load_metrics()
+
 def extract_json_from_string(s):
     try:
+        match = re.search(r'\{.*\}', s, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
         return json.loads(s.strip())
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON parsing failed: {e}")
@@ -52,6 +110,10 @@ def extract_json_from_string(s):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+
+# Replace your current query() function with this one for debugging
 
 
 @app.route("/query", methods=["POST"])
@@ -287,124 +349,118 @@ def query():
         "answer": paragraph_answer or "No answer generated."
     })
 
+# The rest of the file (/generate_comparison, /save_feedback, etc.) remains unchanged
 @app.route("/generate_comparison", methods=["POST"])
 def generate_comparison():
     data = request.get_json()
     session_id = data.get("session_id")
-
     if not session_id or session_id not in comparison_cache:
         return jsonify({"error": "Invalid or expired session ID."}), 404
 
     cached_data = comparison_cache[session_id]
     user_query = cached_data["query"]
-    docs = cached_data["docs"]
 
-    # --- Initialize Baseten Client ---
     baseten_client = OpenAI(api_key=baseten_api_key, base_url="https://inference.baseten.co/v1")
     model_name = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
 
-    # --- 1. Plain LLM Answer ---
     try:
-        plain_prompt = f"""
-        You are a helpful assistant. Answer the following user query directly based on your general knowledge.
-        Be concise and do not exceed 150 words. Do not exceed a paragraph.
-        Do not use bold or italic formatting. Keep the answer plain-text and simple.
-        Query: {user_query}
-        """
+        plain_prompt = f"Answer the following query based on your general knowledge. Be concise, one paragraph, max 150 words. Query: {user_query}"
         response = baseten_client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": plain_prompt}],
-            max_tokens=1000,
-        )
+            model=model_name, messages=[{"role": "user", "content": plain_prompt}], max_tokens=1000)
         plain_llm_answer = response.choices[0].message.content
     except Exception as e:
         plain_llm_answer = f"[Plain LLM answer generation failed: {e}]"
 
-    # --- 2. MongoDB Vector Search Based LLM Answer (from cache) ---
     mongodb_rag_answer = cached_data.get("mongodb_rag_answer", "[Answer not found in cache]")
 
-    # --- 3. Neo4j + LLM Answer---
     try:
-        # Step 3.1: Get the pre-extracted entity list from the cache
         entities = cached_data.get("extracted_entities")
-        print(f"[INFO] Using pre-extracted entities for KG search: {entities}")
+        if not entities: raise ValueError("No entities were pre-extracted.")
 
-        if not entities:
-            raise ValueError("No entities were pre-extracted from the documents.")
-        info = cached_data.get("document_info")
-        # Step 3.2: Query Neo4j to get the neighborhood of these entities
-        kg_context_triples = []
         with neo4j_driver.session() as session:
-            cypher_query = """
-                UNWIND $entities AS entityName
-                MATCH (n) WHERE n.name CONTAINS entityName
-                MATCH (n)-[r]->(m)
-                WHERE m.name IS NOT NULL
-                RETURN n.name AS source, type(r) AS relation, m.name AS target
-                LIMIT 25
-            """
-            results = session.run(cypher_query, entities = entities)
-            for record in results:
-                kg_context_triples.append(f"({record['source']})-[:{record['relation']}]->({record['target']})")
-
-        kg_context = "\n".join(kg_context_triples)
-        print(f"[INFO] Retrieved KG context:\n{kg_context}")
-
+            results = session.run("UNWIND $entities AS e MATCH (n) WHERE n.name CONTAINS e MATCH (n)-[r]->(m) RETURN n.name AS s, type(r) AS rel, m.name AS t LIMIT 25", entities=entities)
+            kg_context = "\n".join([f"({r['s']})-[:{r['rel']}]->({r['t']})" for r in results])
+        
         if not kg_context:
-            neo4j_kg_rag_answer = "The entities extracted from the documents were not found in the knowledge graph."
+            neo4j_kg_rag_answer = "The entities extracted from the documents were not found in the knowledge graph, so no answer could be generated."
         else:
-            # Step 3.3: Pass the KG context to the LLM to generate an answer
-            kg_rag_prompt = f"""
-                You are an assistant that answers queries using the provided Knowledge Graph context.
-                Answer the user's query using ONLY the facts from the context below. Do not use any prior knowledge.
-                If the context does not contain the answer, say so.
-                Keep the answer concise and do not exceed 150 words and one paragraph only. Do not use bold or italic formatting.
-                Take the kg context into account and generate an elaborate answer.
-                DO not mention about what you know and do not - use abstraction and professionalism.
-                
-                Do not explicitly mention "context" or "knowledge graph" or "mentioned entities" in your answer.
-                Use the information provided to refer to the entities and relationships without explicitly stating them.
-                Query: {user_query}
-
-                Knowledge Graph Context:
-                ---
-                {kg_context}
-                ---
-                
-                Document Information:
-                ---
-                {info}
-                ---
-
-                Answer:
-                """
+            kg_rag_prompt = f"Answer the query using ONLY the facts from the Knowledge Graph context. Be concise, one paragraph, max 150 words. Query: {user_query}\nContext:\n{kg_context}\nAnswer:"
             response = baseten_client.chat.completions.create(
-                model = model_name,
-                messages = [{"role": "user", "content": kg_rag_prompt}],
-                max_tokens = 1000,
-            )
+                model=model_name, messages=[{"role": "user", "content": kg_rag_prompt}], max_tokens=1000)
             neo4j_kg_rag_answer = response.choices[0].message.content
-
     except Exception as e:
         neo4j_kg_rag_answer = f"[KG RAG answer generation failed: {e}]"
         print(f"[ERROR] KG RAG answer generation failed: {e}")
 
+    # Corrected Line
+    docs_for_reference = cached_data.get("docs", [])
+    reference_text = ". ".join([doc.get('summary', '') for doc in docs_for_reference if doc.get('summary')])
+
+    calculated_metrics = {
+        "plain_llm": {
+            "bleu": calculate_bleu(plain_llm_answer, mongodb_rag_answer),
+            "rouge_l": calculate_rouge_l_f1(plain_llm_answer, mongodb_rag_answer)
+        },
+        "mongodb_rag": {
+            "bleu": calculate_bleu(mongodb_rag_answer, reference_text),
+            "rouge_l": calculate_rouge_l_f1(mongodb_rag_answer, reference_text)
+        },
+        "neo4j_kg_rag": {
+            "bleu": calculate_bleu(neo4j_kg_rag_answer, reference_text),
+            "rouge_l": calculate_rouge_l_f1(neo4j_kg_rag_answer, reference_text)
+        }
+    }
+    cached_data["calculated_metrics"] = calculated_metrics
+    
     return jsonify({
         "plain_llm_answer": plain_llm_answer,
         "mongodb_rag_answer": mongodb_rag_answer,
-        "neo4j_kg_rag_answer": neo4j_kg_rag_answer
+        "neo4j_kg_rag_answer": neo4j_kg_rag_answer,
+        "calculated_metrics": calculated_metrics
     })
+
+
+@app.route("/save_feedback", methods=["POST"])
+def save_feedback():
+    data = request.get_json()
+    session_id, model_type, ratings = data.get("session_id"), data.get("model_type"), data.get("ratings")
+
+    if not all([session_id, model_type, ratings]):
+        return jsonify({"error": "Missing required feedback data."}), 400
+    if session_id not in comparison_cache:
+        return jsonify({"error": "Session not found or expired."}), 404
+
+    cached_data = comparison_cache[session_id]
+    
+    feedback_entry = {
+        "session_id": session_id,
+        "query": cached_data.get("query"),
+        "model_type": model_type,
+        "human_ratings": {
+            "factual_accuracy": int(ratings.get("accuracy", 0)),
+            "completeness": int(ratings.get("completeness", 0)),
+            "coherence": int(ratings.get("coherence", 0)),
+            "helpfulness": int(ratings.get("helpfulness", 0)),
+        },
+        "calculated_metrics": cached_data.get("calculated_metrics", {})
+    }
+    
+    global all_metrics
+    all_metrics.append(feedback_entry)
+    
+    print(f"[INFO] Saved feedback for {model_type} in session {session_id}")
+    return jsonify({"success": True, "message": f"Feedback for {model_type} saved."})
 
 
 @app.route("/cleanup/<session_id>", methods=['POST'])
 def cleanup(session_id):
     with neo4j_driver.session() as session:
         session.run("MATCH (n {session: $sid}) DETACH DELETE n", sid=session_id)
-    # Also remove from cache
     if session_id in comparison_cache:
         del comparison_cache[session_id]
     return f"Cleanup complete for session {session_id}"
 
+atexit.register(lambda: save_metrics(all_metrics))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, use_reloader=False)

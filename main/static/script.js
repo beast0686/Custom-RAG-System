@@ -49,29 +49,28 @@ form.addEventListener('submit', async (event) => {
 
   clearError();
 
-  // Cleanup previous session
   if (graphSessionId) {
-    try {
-      await fetch(`/cleanup/${graphSessionId}`, { method: 'POST' });
-    } catch (cleanupErr) {
-      console.warn('Cleanup failed:', cleanupErr);
-    }
+    try { await fetch(`/cleanup/${graphSessionId}`, { method: 'POST' }); }
+    catch (cleanupErr) { console.warn('Cleanup failed:', cleanupErr); }
     graphSessionId = null;
   }
 
-  // Show loader with animation
   loader.style.display = 'block';
   loader.style.animation = 'fadeInScale 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
 
-  // Hide previous results with fade out
+  // Hide previous results
   const answerContainer = document.getElementById("answer-container");
   const answerText = document.getElementById("answer-text");
+
   if (comparisonSection.style.display !== 'none') {
-      comparisonSection.style.opacity = '0';
-      comparisonSection.style.transform = 'translateY(-20px)';
-      setTimeout(() => {
-          comparisonSection.style.display = 'none';
-      }, 300);
+    comparisonSection.style.opacity = '0';
+    comparisonSection.style.transform = 'translateY(-20px)';
+    setTimeout(() => {
+        comparisonSection.style.display = 'none';
+        comparisonResultsContainer.style.display = 'none';
+        compareBtn.textContent = 'Compare RAG Approaches';
+        compareBtn.disabled = false;
+    }, 300);
   }
   if (answerContainer.style.display !== 'none') {
     answerContainer.style.opacity = '0';
@@ -81,15 +80,11 @@ form.addEventListener('submit', async (event) => {
       answerText.innerHTML = '';
     }, 300);
   }
-
   if (docsContainer.innerHTML) {
     docsContainer.style.opacity = '0';
     docsContainer.style.transform = 'translateY(-20px)';
-    setTimeout(() => {
-      docsContainer.innerHTML = '';
-    }, 300);
+    setTimeout(() => { docsContainer.innerHTML = ''; }, 300);
   }
-
   if (graphSection.style.display !== 'none') {
     graphSection.style.opacity = '0';
     graphSection.style.transform = 'translateY(-20px)';
@@ -108,15 +103,12 @@ form.addEventListener('submit', async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: queryText, k: k })
     });
-
     if (!response.ok) {
       const err = await response.json();
       throw new Error(err.error || `HTTP error! Status: ${response.status}`);
     }
-
     const data = await response.json();
 
-    // Show answer with animation
     if (data.answer) {
       answerText.innerText = data.answer.trim();
       answerContainer.style.display = 'block';
@@ -130,15 +122,14 @@ form.addEventListener('submit', async (event) => {
 
     graphSessionId = data.session_id;
     comparisonSection.style.display = 'flex';
-    comparisonSection.style.opacity = '1'; // This is the missing line
-    comparisonSection.style.transform = 'translateY(0)'; // Reset the transform
+    comparisonSection.style.opacity = '1';
+    comparisonSection.style.transform = 'translateY(0)';
     comparisonResultsContainer.style.display = 'none';
-    // Show documents with staggered animation
+
     if (data.retrieved_docs?.length > 0) {
       docsContainer.innerHTML = `<h2>Retrieved Documents</h2>`;
       docsContainer.style.opacity = '1';
       docsContainer.style.transform = 'translateY(0)';
-
       data.retrieved_docs.forEach((doc, idx) => {
         const card = document.createElement('div');
         card.className = 'doc-card';
@@ -148,25 +139,19 @@ form.addEventListener('submit', async (event) => {
         card.innerHTML = `
           <div class="doc-card-header">Document ${idx + 1} | Similarity Score: ${doc.score}</div>
           <div class="doc-card-content">${doc.summary}</div>
-          <div class="doc-card-reference">Reference: <a href="${doc.url}" target="_blank" rel="noopener noreferrer">View Source</a></div>
-        `;
+          <div class="doc-card-reference">Reference: <a href="${doc.url}" target="_blank" rel="noopener noreferrer">View Source</a></div>`;
         docsContainer.appendChild(card);
-
-        // Staggered animation
         setTimeout(() => {
           card.style.opacity = '1';
           card.style.transform = 'translateY(0)';
         }, 100 + idx * 100);
       });
-    } else if (data.answer) {
-      // Answer only, no documents
     } else {
       docsContainer.innerHTML = '<h2>No relevant documents found for this query.</h2>';
       docsContainer.style.opacity = '1';
       docsContainer.style.transform = 'translateY(0)';
     }
 
-    // Show graph with animation
     if (data.nodes?.length > 0) {
       graphSection.style.display = 'block';
       graphSection.style.opacity = '0';
@@ -183,14 +168,12 @@ form.addEventListener('submit', async (event) => {
       setTimeout(() => {
         graphSection.style.opacity = '1';
         graphSection.style.transform = 'translateY(0)';
-        graphContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:1.125rem;">Documents were found, but no entities could be extracted to build a graph.</div>';
+        graphContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:1.125rem;">Documents were found, but no entities could be extracted.</div>';
       }, 200);
     }
-
   } catch (error) {
     showError(error.message || "Unknown error occurred");
   } finally {
-    // Hide loader with animation
     loader.style.opacity = '0';
     setTimeout(() => {
       loader.style.display = 'none';
@@ -210,291 +193,274 @@ function clearError() {
   errorContainer.style.display = 'none';
 }
 
-
 function renderGraph(nodes, edges) {
-  const container = document.getElementById('graph-container');
-  container.innerHTML = ''; // Clear previous graph
+    const container = document.getElementById('graph-container');
+    container.innerHTML = '';
 
-  if (!nodes || nodes.length === 0) {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:1.125rem;">No data available to build a graph.</div>';
-    return;
-  }
-
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-
-  const dbNode = { id: "db_center", label: "DB", group: "Database", fx: width / 2, fy: height / 2 };
-  const finalNodes = [dbNode, ...nodes];
-
-  const docLinks = nodes
-    .filter(n => n.group === 'Document')
-    .map(docNode => ({ source: dbNode.id, target: docNode.id }));
-
-  const finalEdges = [...edges, ...docLinks];
-  const links = finalEdges.map(e => ({ source: e.from || e.source, target: e.to || e.target, relation: e.relation }));
-
-  const svg = d3.select(container)
-    .append('svg')
-    .attr('viewBox', `0 0 ${width} ${height}`)
-    .style('background-color', '#211f24');
-
-  const g = svg.append("g");
-
-  const color = d3.scaleOrdinal()
-    .domain(['Database', 'Document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product', 'Inferred'])
-    .range(['#ff7f0e', '#4e79a7', '#f28e2c', '#59a14f', '#e15759', '#76b7b2', '#af7aa1', '#ff9da7', '#9c755f', '#bab0ab']);
-
-  const simulation = d3.forceSimulation(finalNodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.relation ? 120 : 70).strength(1))
-    .force("charge", d3.forceManyBody().strength(-400))
-    .force("center", d3.forceCenter(width / 2, height / 2).strength(0.2))
-    .force("collision", d3.forceCollide().radius(25));
-
-  const link = g.append('g')
-    .attr('class', 'links')
-    .selectAll('line')
-    .data(links)
-    .enter().append('line')
-    .attr('stroke', d => d.relation ? '#999' : '#555')
-    .attr('stroke-opacity', 0.8)
-    .attr('stroke-width', 1.5);
-
-  const linkText = g.append('g')
-    .attr('class', 'link-labels')
-    .selectAll('text')
-    .data(links)
-    .enter().append('text')
-    .attr('class', 'link-label-text')
-    .text(d => d.relation || '')
-    .attr('font-size', '10px')
-    .attr('text-anchor', 'middle')
-    .style('font-weight', 'normal')
-    .attr('fill', '#000000')
-    .style('paint-order', 'stroke')
-    .style('stroke', '#ffffff')
-    .style('stroke-width', '1px')
-    .style('stroke-linecap', 'round');
-
-  const node = g.append('g')
-    .attr('class', 'nodes')
-    .selectAll('g')
-    .data(finalNodes)
-    .enter().append('g')
-    .attr('class', 'node')
-    .style('cursor', 'pointer')
-    .call(drag(simulation));
-
-  // Document click handler remains unchanged
-  node.on('click', (event, d) => {
-    if (d.group === 'Document') {
-      const cardId = d.id.replace('doc_', 'doc-');
-      const cardElement = document.getElementById(cardId);
-      if (cardElement) {
-        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        cardElement.style.transition = 'all 0.3s ease-in-out';
-        cardElement.style.transform = 'scale(1.05)';
-        cardElement.style.boxShadow = '0 0 20px rgba(78, 121, 167, 0.7)';
-        setTimeout(() => {
-          cardElement.style.transform = 'scale(1)';
-          cardElement.style.boxShadow = '';
-        }, 1500);
-      }
+    if (!nodes || nodes.length === 0) {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:1.125rem;">No data available to build a graph.</div>';
+        return;
     }
-  });
+    
+    const graphBgColor = '#211f24';
+    const textColor = '#f1f1f1';
+    const linkLabelColor = '#000000';
+    const linkLabelStroke = '#ffffff';
 
-  // --- NEW: Add a double-click handler to "unstick" nodes ---
-  node.on('dblclick', (event, d) => {
-    if (d.id !== 'db_center') { // Don't unfix the central DB node
-      d.fx = null;
-      d.fy = null;
-      // Gently reheat the simulation to allow the graph to readjust
-      simulation.alpha(0.3).restart();
-    }
-  });
+    const width = container.clientWidth;
+    const height = container.clientHeight;
 
-  node.each(function(d) {
-    const group = d3.select(this);
-    if (d.group === 'Database') {
-      group.append('circle').attr('r', 20).attr('fill', color(d.group)).attr('stroke', '#ffcc00').attr('stroke-width', 3);
-    } else if (d.group === 'Document') {
-      group.append('rect').attr('width', 18).attr('height', 18).attr('x', -9).attr('y', -9).attr('rx', 3).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
-    } else {
-      group.append('circle').attr('r', 10).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
-    }
-  });
+    const dbNode = { id: "db_center", label: "DB", group: "Database", fx: width / 2, fy: height / 2 };
+    const finalNodes = [dbNode, ...nodes];
+    const docLinks = nodes.filter(n => n.group === 'Document').map(docNode => ({ source: dbNode.id, target: docNode.id }));
+    const finalEdges = [...edges, ...docLinks];
+    const links = finalEdges.map(e => ({ source: e.from || e.source, target: e.to || e.target, relation: e.relation }));
 
-  node.append('text')
-    .text(d => d.label)
-    .attr('dy', '0.35em')
-    .attr('dx', d => d.group === 'Database' ? 25 : 14)
-    .style('font-size', '12px')
-    .style('font-family', 'Inter, sans-serif')
-    .style('fill', '#f1f1f1')
-    .style('text-shadow', '0 0 5px #1a1a1a, 0 0 5px #1a1a1a');
+    const svg = d3.select(container).append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .style('background-color', graphBgColor);
 
-  node.append('title')
-    .text(d => `${d.label} (${d.group})`);
+    const g = svg.append("g");
+    const color = d3.scaleOrdinal()
+        .domain(['Database', 'Document', 'Person', 'Organization', 'Location', 'Concept', 'Technology', 'Event', 'Product', 'Inferred'])
+        .range(['#ff7f0e', '#4e79a7', '#f28e2c', '#59a14f', '#e15759', '#76b7b2', '#af7aa1', '#ff9da7', '#9c755f', '#bab0ab']);
 
-  simulation.on('tick', () => {
-    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-    node.attr('transform', d => `translate(${d.x},${d.y})`);
-    linkText.attr('x', d => (d.source.x + d.target.x) / 2)
-            .attr('y', d => (d.source.y + d.target.y) / 2);
-  });
+    // --- FIX: Re-tuned physics for a more spread-out and stable layout ---
+    const simulation = d3.forceSimulation(finalNodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.relation ? 150 : 80).strength(0.4))
+        .force("charge", d3.forceManyBody().strength(-900))
+        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.1))
+        .force("collision", d3.forceCollide().radius(35));
 
-  const zoom = d3.zoom().scaleExtent([0.2, 7]).on('zoom', (event) => {
-    g.attr('transform', event.transform);
-  });
-  svg.call(zoom);
+    const link = g.append('g').selectAll('line').data(links).enter().append('line')
+        .attr('stroke', d => d.relation ? '#999' : '#555')
+        .attr('stroke-opacity', 0.8)
+        .attr('stroke-width', d => d.relation ? 1.5 : 1);
 
-  function drag(simulation) {
-    function dragstarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-    function dragged(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
+    const linkText = g.append('g').selectAll('text').data(links).enter().append('text')
+        .text(d => d.relation || '')
+        .attr('class', 'link-label-text')
+        .attr('font-size', '10px').attr('text-anchor', 'middle').style('font-weight', 'normal')
+        .attr('fill', linkLabelColor).style('paint-order', 'stroke').style('stroke', linkLabelStroke)
+        .style('stroke-width', '2px').style('stroke-linecap', 'round');
+
+    const node = g.append('g').selectAll('g').data(finalNodes).enter().append('g')
+        .attr('class', 'node')
+        .style('cursor', 'pointer')
+        .call(drag(simulation));
+
+    node.on('click', (event, d) => {
+        if (d.group === 'Document') {
+            const cardId = d.id.replace('doc_', 'doc-');
+            const cardElement = document.getElementById(cardId);
+            if (cardElement) {
+                cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                cardElement.style.transition = 'all 0.3s ease-in-out';
+                cardElement.style.transform = 'scale(1.05)';
+                cardElement.style.boxShadow = '0 0 20px rgba(78, 121, 167, 0.7)';
+                setTimeout(() => {
+                    cardElement.style.transform = 'scale(1)';
+                    cardElement.style.boxShadow = '';
+                }, 1500);
+            }
+        }
+    });
+    
+    node.on('dblclick', (event, d) => {
+        if (d.id !== 'db_center') {
+            d.fx = null;
+            d.fy = null;
+            simulation.alpha(0.3).restart();
+        }
+    });
+
+    node.each(function(d) {
+        const group = d3.select(this);
+        if (d.group === 'Database') group.append('circle').attr('r', 20).attr('fill', color(d.group)).attr('stroke', '#ffcc00').attr('stroke-width', 3);
+        else if (d.group === 'Document') group.append('rect').attr('width', 18).attr('height', 18).attr('x', -9).attr('y', -9).attr('rx', 3).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
+        else group.append('circle').attr('r', 10).attr('fill', color(d.group)).attr('stroke', '#fff').attr('stroke-width', 2);
+    });
+
+    node.append('text').text(d => d.label).attr('dy', '0.35em').attr('dx', d => d.group === 'Database' ? 25 : 14)
+        .style('font-size', '12px').style('font-family', 'Inter, sans-serif').style('fill', textColor)
+        .style('text-shadow', `0 0 5px ${graphBgColor}, 0 0 5px ${graphBgColor}`);
+
+    node.append('title').text(d => `${d.label} (${d.group})`);
+
+    simulation.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+        linkText.attr('x', d => (d.source.x + d.target.x) / 2).attr('y', d => (d.source.y + d.target.y) / 2);
+    });
+
+    svg.call(d3.zoom().scaleExtent([0.2, 7]).on('zoom', (event) => g.attr('transform', event.transform)));
+
+    function drag(simulation) {
+        function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+        function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+        function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); }
+        return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
     }
 
-    // --- MODIFIED: This function now makes nodes "stick" ---
-    function dragended(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      // By NOT setting d.fx and d.fy to null, we keep the node fixed
-      // where the user dropped it. Double-clicking will now release it.
-    }
+    exportBtn.style.display = 'inline-block';
+    exportBtn.style.opacity = '0';
+    exportBtn.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+        exportBtn.style.opacity = '1';
+        exportBtn.style.transform = 'translateY(0)';
+    }, 500);
 
-    return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
-  }
-
-  exportBtn.style.display = 'inline-block';
-  exportBtn.style.opacity = '0';
-  exportBtn.style.transform = 'translateY(10px)';
-  setTimeout(() => {
-    exportBtn.style.opacity = '1';
-    exportBtn.style.transform = 'translateY(0)';
-  }, 500);
-
-  exportBtn.onclick = () => {
-    const currentTransform = d3.zoomTransform(svg.node());
-    g.attr('transform', null);
-    const bounds = g.node().getBBox();
-    const padding = 40;
-    const framedSvgString = `<svg width="${bounds.width + padding * 2}" height="${bounds.height + padding * 2}" viewBox="${bounds.x - padding} ${bounds.y - padding} ${bounds.width + padding * 2} ${bounds.height + padding * 2}" xmlns="http://www.w3.org/2000/svg">
-        <style>
-          .node text { font-family: Inter, sans-serif; font-size:12px; fill: #f1f1f1; text-shadow: 0 0 5px #1a1a1a, 0 0 5px #1a1a1a; }
-          .link-label-text { font-family: Inter, sans-serif; font-size: 10px; fill: #1a1a1a; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 2px; stroke-linecap: round; }
-        </style>
-        ${g.node().innerHTML}
-      </svg>`;
-    g.attr('transform', currentTransform);
-    const svgBlob = new Blob([framedSvgString], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = () => {
-        const scaleFactor = 3;
-        const canvas = document.createElement('canvas');
-        canvas.width = (bounds.width + padding * 2) * scaleFactor;
-        canvas.height = (bounds.height + padding * 2) * scaleFactor;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#211f24';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const link = document.createElement('a');
-        link.download = 'knowledge-graph.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        URL.revokeObjectURL(url);
+    exportBtn.onclick = () => {
+        const currentTransform = d3.zoomTransform(svg.node());
+        g.attr('transform', null);
+        const bounds = g.node().getBBox();
+        const padding = 40;
+        const framedSvgString = `<svg width="${bounds.width + padding * 2}" height="${bounds.height + padding * 2}" viewBox="${bounds.x - padding} ${bounds.y - padding} ${bounds.width + padding * 2} ${bounds.height + padding * 2}" xmlns="http://www.w3.org/2000/svg">
+            <style>
+              .node text { font-family: Inter, sans-serif; font-size:12px; fill: ${textColor}; text-shadow: 0 0 5px ${graphBgColor}, 0 0 5px ${graphBgColor}; }
+              .link-label-text { font-family: Inter, sans-serif; font-size: 10px; fill: ${linkLabelColor}; text-anchor: middle; paint-order: stroke; stroke: ${linkLabelStroke}; stroke-width: 2px; stroke-linecap: round; }
+            </style>
+            ${g.node().innerHTML}
+          </svg>`;
+        g.attr('transform', currentTransform);
+        const svgBlob = new Blob([framedSvgString], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.onload = () => {
+            const scaleFactor = 3;
+            const canvas = document.createElement('canvas');
+            canvas.width = (bounds.width + padding * 2) * scaleFactor;
+            canvas.height = (bounds.height + padding * 2) * scaleFactor;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = graphBgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const link = document.createElement('a');
+            link.download = 'knowledge-graph.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
     };
-    img.src = url;
-    exportBtn.style.transform = 'scale(0.95)';
-    setTimeout(() => { exportBtn.style.transform = 'scale(1)'; }, 150);
-  };
 }
 
-// Enhanced document card interaction
-docsContainer.addEventListener('click', (e) => {
-  const card = e.target.closest('.doc-card');
-  if (card) {
-    const nodeId = card.id.replace("doc-", "doc_");
-    d3.selectAll('.node')
-      .filter(d => d.id === nodeId)
-      .select('circle')
-      .transition()
-      .duration(200)
-      .attr('r', 15)
-      .transition()
-      .duration(200)
-      .attr('r', 8);
-    card.style.transform = 'translateY(-8px) scale(1.02)';
-    card.style.boxShadow = 'var(--shadow-strong), var(--shadow-glow)';
-    setTimeout(() => {
-      card.style.transform = 'translateY(-4px)';
-      card.style.boxShadow = 'var(--strong)';
-    }, 200);
-  }
-});
-
-// Enhanced input interactions
-input.addEventListener('focus', () => {
-  input.parentElement.style.transform = 'translateY(-2px)';
-});
-
-input.addEventListener('blur', () => {
-  input.parentElement.style.transform = 'translateY(0)';
-});
-
-// Add subtle parallax effect on scroll
-window.addEventListener('scroll', () => {
-  const scrolled = window.pageYOffset;
-  const rate = scrolled * -0.3;
-  document.body.style.backgroundPosition = `0 ${rate}px`;
-});
-
-// Add this new event listener to the end of the file
 
 compareBtn.addEventListener('click', async () => {
     if (!graphSessionId) {
         showError("Please perform a query first before comparing results.");
         return;
     }
-
-    // Show loader and disable button to prevent multiple clicks
     comparisonLoader.style.display = 'block';
     comparisonResultsContainer.style.display = 'none';
     compareBtn.disabled = true;
     compareBtn.textContent = 'Comparing...';
-
     try {
         const response = await fetch('/generate_comparison', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: graphSessionId })
         });
-
         if (!response.ok) {
             const err = await response.json();
             throw new Error(err.error || `HTTP error! Status: ${response.status}`);
         }
-
         const data = await response.json();
-
-        // Populate the results
+        
         plainLlmAnswer.innerText = data.plain_llm_answer;
         mongodbRagAnswer.innerText = data.mongodb_rag_answer;
         neo4jKgRagAnswer.innerText = data.neo4j_kg_rag_answer;
 
-        // Show the results container
+        if (data.calculated_metrics) {
+            document.getElementById('plain-llm-bleu').innerText = data.calculated_metrics.plain_llm.bleu.toFixed(4);
+            document.getElementById('plain-llm-rouge').innerText = data.calculated_metrics.plain_llm.rouge_l.toFixed(4);
+            document.getElementById('mongodb-rag-bleu').innerText = data.calculated_metrics.mongodb_rag.bleu.toFixed(4);
+            document.getElementById('mongodb-rag-rouge').innerText = data.calculated_metrics.mongodb_rag.rouge_l.toFixed(4);
+            document.getElementById('neo4j-kg-rag-bleu').innerText = data.calculated_metrics.neo4j_kg_rag.bleu.toFixed(4);
+            document.getElementById('neo4j-kg-rag-rouge').innerText = data.calculated_metrics.neo4j_kg_rag.rouge_l.toFixed(4);
+        }
+
+        resetFeedbackForms();
         comparisonResultsContainer.style.display = 'block';
 
     } catch (error) {
         showError(error.message || "Failed to generate comparison.");
     } finally {
-        // Hide loader and re-enable button
         comparisonLoader.style.display = 'none';
         compareBtn.disabled = false;
-        compareBtn.textContent = 'Compare Generation Methods';
+        compareBtn.textContent = 'Compare RAG Approaches';
     }
+});
+
+function resetFeedbackForms() {
+    document.querySelectorAll('.feedback-form').forEach(form => {
+        const submitBtn = form.querySelector('.submit-feedback-btn');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rating';
+        form.style.opacity = '1';
+        form.querySelectorAll('span, button').forEach(el => el.style.pointerEvents = 'auto');
+        form.querySelectorAll('.stars').forEach(container => {
+            container.removeAttribute('data-rating');
+            container.querySelectorAll('span').forEach(star => star.classList.remove('selected'));
+        });
+    });
+}
+
+document.querySelectorAll('.feedback-form').forEach(form => {
+    form.querySelectorAll('.stars').forEach(container => {
+        const stars = container.querySelectorAll('span');
+        stars.forEach((star, index) => {
+            star.addEventListener('click', () => {
+                container.dataset.rating = index + 1;
+                stars.forEach((s, i) => s.classList.toggle('selected', i <= index));
+            });
+        });
+    });
+
+    const submitBtn = form.querySelector('.submit-feedback-btn');
+    submitBtn.addEventListener('click', async () => {
+        const modelType = form.dataset.model;
+        const ratings = {};
+        let allRated = true;
+        form.querySelectorAll('.stars').forEach(container => {
+            const metric = container.dataset.metric;
+            const rating = container.dataset.rating;
+            if (rating) {
+                ratings[metric] = parseInt(rating, 10);
+            } else {
+                allRated = false;
+            }
+        });
+
+        if (!allRated) {
+            alert('Please rate all criteria before submitting.');
+            return;
+        }
+        
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+            const response = await fetch('/save_feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: graphSessionId, model_type: modelType, ratings: ratings,
+                    query: document.getElementById('query-input').value.trim()
+                })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                submitBtn.textContent = 'Rating Submitted!';
+                form.querySelectorAll('span, button').forEach(el => el.style.pointerEvents = 'none');
+                form.style.opacity = '0.6';
+            } else {
+                throw new Error(result.message || 'Failed to save feedback.');
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            submitBtn.textContent = 'Submit Rating';
+            submitBtn.disabled = false;
+        }
+    });
 });

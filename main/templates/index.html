@@ -1,89 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Classical RAG System</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic KG RAG Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
+    <div id="status-bar">✨ 29,873 Documents</div>
+    <h1>Query Documents</h1>
 
-<div id="status-bar">✨ 29,873 Records</div>
+    <form id="query-form">
+        <div class="form-section">
+            <div class="input-container">
+                <input type="text" id="query-input" placeholder=" " autocomplete="off">
+                <label for="query-input" class="input-label">Enter your query...</label>
+            </div>
+            <div class="slider-container">
+                <label class="slider-label" for="k-slider">
+                    Number of Documents to Retrieve: <span id="k-value-label">10</span>
+                </label>
+                <input type="range" id="k-slider" min="1" max="20" value="10">
+            </div>
+        </div>
+        <button type="submit" id="query-btn">Generate Answer</button>
+    </form>
+    
+    <div id="loader" class="loader"></div>
+    <div id="error-container"></div>
 
-<h1>Classical RAG System</h1>
-
-<div id="error-container"></div>
-
-<form id="query-form">
-  <div class="form-section">
-    <div class="input-container">
-      <input type="text" id="query-input" placeholder=" " autocomplete="off">
-      <label for="query-input" class="input-label">Ask about your documents...</label>
+    <div id="answer-container">
+        <h2>Generated Answer (from MongoDB RAG)</h2>
+        <p id="answer-text"></p>
     </div>
 
-    <div class="slider-container">
-      <label for="k-slider" class="slider-label">
-        Top K similar documents: <span id="k-value-label">10</span>
-      </label>
-      <input type="range" id="k-slider" min="2" max="15" value="10">
-    </div>
+    <div id="docs-container"></div>
 
-    <button type="submit" id="submit-btn">Generate Answer</button>
-  </div>
-</form>
+    <section id="graph-section">
+        <div class="graph-header">
+            <h2>Retrieved Knowledge Graph</h2>
+            <button id="export-graph">Export as PNG</button>
+        </div>
+        <div id="graph-container"></div>
+    </section>
 
-<div class="loader" id="loader"></div>
+    <section id="comparison-section">
+        <button id="compare-btn">Compare RAG Approaches</button>
+        <div id="comparison-loader" class="loader"></div>
+        <div id="comparison-results-container" style="display: none;">
+            <h2>Answer Comparison</h2>
+            <div class="comparison-grid">
+                
+                <!-- Plain LLM Column -->
+                <div class="comparison-column">
+                    <h3>Plain LLM</h3>
+                    <p id="plain-llm-answer"></p>
+                    <div class="automated-metrics">
+                        <h4>Automated Metrics</h4>
+                        <div class="metric-item"><span class="metric-label">BLEU Score:</span><span class="metric-value" id="plain-llm-bleu">N/A</span></div>
+                        <div class="metric-item"><span class="metric-label">ROUGE-L:</span><span class="metric-value" id="plain-llm-rouge">N/A</span></div>
+                    </div>
+                    <form class="feedback-form" data-model="plain_llm" onsubmit="return false;">
+                        <h4>Your Rating</h4>
+                        <div class="rating-group"><label>Factual Accuracy</label><div class="stars" data-metric="accuracy"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Completeness</label><div class="stars" data-metric="completeness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Coherence</label><div class="stars" data-metric="coherence"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Helpfulness</label><div class="stars" data-metric="helpfulness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <button type="button" class="submit-feedback-btn">Submit Rating</button>
+                    </form>
+                </div>
 
-<div id="answer-container">
-  <h2>Answer</h2>
-  <div id="answer-text"></div>
-</div>
+                <!-- MongoDB RAG Column -->
+                <div class="comparison-column">
+                    <h3>MongoDB RAG</h3>
+                    <p id="mongodb-rag-answer"></p>
+                    <div class="automated-metrics">
+                        <h4>Automated Metrics</h4>
+                        <div class="metric-item"><span class="metric-label">BLEU Score:</span><span class="metric-value" id="mongodb-rag-bleu">N/A</span></div>
+                        <div class="metric-item"><span class="metric-label">ROUGE-L:</span><span class="metric-value" id="mongodb-rag-rouge">N/A</span></div>
+                    </div>
+                    <form class="feedback-form" data-model="mongodb_rag" onsubmit="return false;">
+                        <h4>Your Rating</h4>
+                        <div class="rating-group"><label>Factual Accuracy</label><div class="stars" data-metric="accuracy"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Completeness</label><div class="stars" data-metric="completeness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Coherence</label><div class="stars" data-metric="coherence"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Helpfulness</label><div class="stars" data-metric="helpfulness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <button type="button" class="submit-feedback-btn">Submit Rating</button>
+                    </form>
+                </div>
 
-<div id="docs-container"></div>
+                <!-- Neo4j KG RAG Column -->
+                <div class="comparison-column">
+                    <h3>Neo4j KG RAG</h3>
+                    <p id="neo4j-kg-rag-answer"></p>
+                     <div class="automated-metrics">
+                        <h4>Automated Metrics</h4>
+                        <div class="metric-item"><span class="metric-label">BLEU Score:</span><span class="metric-value" id="neo4j-kg-rag-bleu">N/A</span></div>
+                        <div class="metric-item"><span class="metric-label">ROUGE-L:</span><span class="metric-value" id="neo4j-kg-rag-rouge">N/A</span></div>
+                    </div>
+                    <form class="feedback-form" data-model="neo4j_kg_rag" onsubmit="return false;">
+                        <h4>Your Rating</h4>
+                        <div class="rating-group"><label>Factual Accuracy</label><div class="stars" data-metric="accuracy"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Completeness</label><div class="stars" data-metric="completeness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Related to Data</label><div class="stars" data-metric="coherence"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <div class="rating-group"><label>Helpfulness</label><div class="stars" data-metric="helpfulness"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div></div>
+                        <button type="button" class="submit-feedback-btn">Submit Rating</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div id="graph-section">
-  <div class="graph-header">
-    <h2>Knowledge Graph</h2>
-    <button id="export-graph">Export Graph as PNG</button>
-  </div>
-  <div id="graph-container"></div>
-  <div id="legend">
-    <div class="legend-item"><span class="legend-color" style="background:#1f77b4"></span> Document</div>
-    <div class="legend-item"><span class="legend-color" style="background:#ff7f0e"></span> Person</div>
-    <div class="legend-item"><span class="legend-color" style="background:#2ca02c"></span> Organization</div>
-    <div class="legend-item"><span class="legend-color" style="background:#d62728"></span> Location</div>
-    <div class="legend-item"><span class="legend-color" style="background:#9467bd"></span> Concept</div>
-    <div class="legend-item"><span class="legend-color" style="background:#8c564b"></span> Technology</div>
-  </div>
-</div>
-
-<div id="comparison-section">
-  <button id="compare-btn">Compare Generation Methods</button>
-  <div class="loader" id="comparison-loader" style="display:none;"></div>
-  <div id="comparison-results-container" style="display:none;">
-    <h2>Comparison of Answers</h2>
-    <h2>Model: meta-llama/Llama-4-Scout-17B-16E-Instruct</h2>
-    <div class="comparison-grid">
-      <div class="comparison-column">
-        <h3>Plain LLM</h3>
-        <p id="plain-llm-answer"></p>
-      </div>
-      <div class="comparison-column">
-        <h3>MongoDB RAG</h3>
-        <p id="mongodb-rag-answer"></p>
-      </div>
-      <div class="comparison-column">
-        <h3>Neo4j KG RAG</h3>
-        <p id="neo4j-kg-rag-answer"></p>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
+

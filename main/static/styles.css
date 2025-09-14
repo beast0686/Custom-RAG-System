@@ -298,7 +298,7 @@ h2::before {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#submit-btn {
+#query-btn, #compare-btn, #export-graph {
   padding: 18px 48px;
   min-width: 200px;
   background: var(--gradient-button);
@@ -315,7 +315,7 @@ h2::before {
   margin-top: 8px;
 }
 
-#submit-btn::before {
+#query-btn::before, #compare-btn::before, #export-graph::before {
   content: '';
   position: absolute;
   top: 0;
@@ -326,17 +326,17 @@ h2::before {
   transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#submit-btn:hover {
+#query-btn:hover, #compare-btn:hover, #export-graph:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-strong), var(--shadow-glow);
   filter: brightness(1.05);
 }
 
-#submit-btn:hover::before {
+#query-btn:hover::before, #compare-btn:hover::before, #export-graph:hover::before {
   left: 100%;
 }
 
-#submit-btn:active {
+#query-btn:active, #compare-btn:active, #export-graph:active {
   transform: translateY(-1px);
 }
 
@@ -359,15 +359,6 @@ h2::before {
   animation: spin 1s linear infinite;
 }
 
-.loader::after {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 44px;
-  height: 44px;
-  /* ... */
-}
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -419,8 +410,6 @@ h2::before {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(149, 117, 205, 0.15);
-  border-left: 4px solid transparent;
-  border-left-image: var(--gradient-button);
   padding: 28px;
   border-radius: var(--radius-lg);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -498,6 +487,21 @@ h2::before {
   animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#graph-container {
+  width: 100%;
+  height: 500px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(149, 117, 205, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
 #graph-container:hover {
   box-shadow: var(--shadow-medium);
 }
@@ -532,19 +536,6 @@ h2::before {
   padding: 0 1rem;
 }
 
-#graph-container {
-  width: 100%;
-  height: 500px;
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(149, 117, 205, 0.15);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 #graph-container svg {
   display: block;
@@ -554,86 +545,7 @@ h2::before {
 }
 
 #export-graph {
-  /* Sizing and Style */
-  padding: 18px 48px;
-  min-width: 200px;
-  background: var(--gradient-button);
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: var(--radius-full);
-
-  /* Positioning and Effects */
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: var(--shadow-medium);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Initial State */
   display: none;
-}
-
-#export-graph::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#export-graph:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-strong), var(--shadow-glow);
-  filter: brightness(1.05);
-}
-
-#export-graph:hover::before {
-  left: 100%;
-}
-
-#legend {
-  max-width: 900px;
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  padding: 24px;
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(149, 117, 205, 0.15);
-  box-shadow: var(--shadow-soft);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-}
-
-.legend-item:hover {
-  color: var(--text-primary);
-  background: var(--surface-primary);
-  transform: translateY(-1px);
-}
-
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 #error-container {
@@ -657,81 +569,6 @@ h2::before {
   75% { transform: translateX(8px); }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  body { padding: 16px; }
-
-  h1 { font-size: 2.5rem; margin-bottom: 2rem; }
-
-  .form-section { padding: 24px; }
-
-  #submit-btn {
-    min-width: 160px;
-    padding: 16px 32px;
-  }
-
-  .doc-card { padding: 20px; }
-
-  #graph-container { height: 400px; }
-
-  #legend {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  #status-bar {
-    position: relative;
-    top: 0;
-    left: 0;
-    margin-bottom: 20px;
-    align-self: flex-start;
-  }
-}
-
-@media (max-width: 480px) {
-  h1 { font-size: 2rem; }
-
-  .form-section {
-    padding: 20px;
-  }
-
-  #submit-btn {
-    min-width: 140px;
-    padding: 14px 28px;
-    font-size: 0.875rem;
-  }
-
-  #graph-container { height: 300px; }
-}
-
-/* Enhanced transitions for all interactive elements */
-* {
-  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background-secondary);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--gradient-primary);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gradient-button);
-}
-
 /* ======================================== */
 /* == Comparison Section Styles == */
 /* ======================================== */
@@ -741,45 +578,14 @@ h2::before {
   max-width: 900px;
   margin: 3rem auto;
   animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-
-  /* New styles for robust centering */
+  display: none; /* Initially hidden */
   flex-direction: column;
   align-items: center;
-  display: none;
-}
-
-#compare-btn {
-  padding: 18px 48px;
-  min-width: 200px;
-  background: var(--gradient-button);
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-medium);
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 2rem;
-  /* Uses the same transitions and effects as your main submit button */
-}
-
-#compare-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-strong), var(--shadow-glow);
-  filter: brightness(1.05);
-}
-
-#compare-btn:active {
-  transform: translateY(-1px);
 }
 
 #comparison-results-container {
   width: 100%;
   margin-top: 2rem;
-  /* Animation will trigger when the container is displayed */
   animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -798,6 +604,8 @@ h2::before {
   border-radius: var(--radius-lg);
   padding: 28px;
   box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
 }
 
 .comparison-column:hover {
@@ -819,4 +627,113 @@ h2::before {
   font-size: 1rem;
   line-height: 1.6;
   color: var(--text-secondary);
+  flex-grow: 1;
 }
+
+/* --- Automated Metrics Styles --- */
+.automated-metrics {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--primary-light);
+}
+
+.automated-metrics h4 {
+    margin-bottom: 1rem;
+    text-align: center;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.metric-value {
+    font-weight: 700;
+    color: var(--text-accent);
+    background-color: var(--background-tertiary);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+
+/* --- Feedback Form Styles --- */
+.feedback-form {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--primary-light);
+}
+
+.feedback-form h4 {
+    margin-bottom: 1rem;
+    text-align: center;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.rating-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.rating-group label {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.stars {
+    cursor: pointer;
+}
+
+.stars span {
+    font-size: 1.5rem;
+    color: var(--primary-light);
+    transition: color 0.2s ease;
+}
+
+.stars span:hover,
+.stars span.selected {
+    color: var(--primary-deep);
+}
+
+.submit-feedback-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 14px;
+    background: var(--gradient-button);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-medium);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.submit-feedback-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-strong), var(--shadow-glow);
+  filter: brightness(1.05);
+}
+
+.submit-feedback-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: var(--shadow-soft);
+    filter: none;
+}
+
