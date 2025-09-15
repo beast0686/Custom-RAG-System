@@ -271,6 +271,8 @@ def query():
 
     # MODIFIED SECTION: Dynamically create nodes for hallucinated entities
     entity_map = {e['name']: f"{e['type']}_{e['name']}".replace(" ", "_").lower() for e in all_entities_from_llm}
+    
+    # Now, iterate through relationships and only create edges if both entities are valid.
     for rel in parsed_output.get("relationships", []):
         src_name = rel.get("source")
         tgt_name = rel.get("target")
@@ -278,19 +280,15 @@ def query():
         if not src_name or not tgt_name:
             continue
 
-        for entity_name in [src_name, tgt_name]:
-            if entity_name not in entity_map:
-                print(f"[INFO] Hallucinated entity found: '{entity_name}'. Creating node.")
-                safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', entity_name)
-                new_id = f"inferred_{safe_name}".lower()
-                if new_id not in unique_nodes:
-                    unique_nodes[new_id] = {"id": new_id, "label": entity_name, "group": "Inferred"}
-                entity_map[entity_name] = new_id
-
-        src_id = entity_map[src_name]
-        tgt_id = entity_map[tgt_name]
-        edges.append({"from": src_id, "to": tgt_id, "relation": rel.get("relation", "RELATED_TO")})
-    # END OF MODIFIED SECTION
+        # Gatekeeper condition: check if BOTH source and target entities exist in our map of valid entities.
+        if src_name in entity_map and tgt_name in entity_map:
+            # If they both exist, create the edge.
+            src_id = entity_map[src_name]
+            tgt_id = entity_map[tgt_name]
+            edges.append({"from": src_id, "to": tgt_id, "relation": rel.get("relation", "RELATED_TO")})
+        else:
+            # If one or both are missing, this is a hallucinated relationship. Skip it.
+            print(f"[INFO] Skipping hallucinated relationship: {rel}. One or both entities were not defined in the 'entities' list.")
 
     nodes = list(unique_nodes.values())
 
