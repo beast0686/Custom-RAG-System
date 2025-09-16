@@ -1,0 +1,80 @@
+{
+    "neo4j_kg_rag": {
+        "factual_accuracy": {
+            "average": 2.5933333333333333,
+            "count": 150
+        },
+        "completeness": {
+            "average": 2.433333333333333,
+            "count": 150
+        },
+        "coherence": {
+            "average": 2.506666666666667,
+            "count": 150
+        },
+        "helpfulness": {
+            "average": 2.4266666666666667,
+            "count": 150
+        },
+        "bleu": {
+            "average": 0.006402662270353044,
+            "count": 150
+        },
+        "rouge_l": {
+            "average": 0.22566520661774883,
+            "count": 150
+        }
+    },
+    "plain_llm": {
+        "bleu": {
+            "average": 0.11578244216479446,
+            "count": 150
+        },
+        "rouge_l": {
+            "average": 0.36163559048900207,
+            "count": 150
+        },
+        "factual_accuracy": {
+            "average": 4.286666666666667,
+            "count": 150
+        },
+        "completeness": {
+            "average": 4.133333333333334,
+            "count": 150
+        },
+        "coherence": {
+            "average": 3.4133333333333336,
+            "count": 150
+        },
+        "helpfulness": {
+            "average": 4.066666666666666,
+            "count": 150
+        }
+    },
+    "mongodb_rag": {
+        "bleu": {
+            "average": 0.05661716897256922,
+            "count": 150
+        },
+        "rouge_l": {
+            "average": 0.31987432183149606,
+            "count": 150
+        },
+        "factual_accuracy": {
+            "average": 4.48,
+            "count": 150
+        },
+        "completeness": {
+            "average": 4.413333333333333,
+            "count": 150
+        },
+        "coherence": {
+            "average": 4.446666666666666,
+            "count": 150
+        },
+        "helpfulness": {
+            "average": 4.3933333333333335,
+            "count": 150
+        }
+    }
+}
