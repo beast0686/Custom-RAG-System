@@ -1,0 +1,80 @@
+{
+    "plain_llm": {
+        "factual_accuracy": {
+            "average": 2.9864864864864864,
+            "count": 148
+        },
+        "completeness": {
+            "average": 2.7567567567567566,
+            "count": 148
+        },
+        "coherence": {
+            "average": 2.804054054054054,
+            "count": 148
+        },
+        "helpfulness": {
+            "average": 2.675675675675676,
+            "count": 148
+        },
+        "bleu": {
+            "average": 0.11075806986806354,
+            "count": 147
+        },
+        "rouge_l": {
+            "average": 0.3555575338621151,
+            "count": 147
+        }
+    },
+    "mongodb_rag": {
+        "bleu": {
+            "average": 0.051767818169165765,
+            "count": 147
+        },
+        "rouge_l": {
+            "average": 0.305277984615166,
+            "count": 147
+        },
+        "factual_accuracy": {
+            "average": 3.1824324324324325,
+            "count": 148
+        },
+        "completeness": {
+            "average": 2.824324324324324,
+            "count": 148
+        },
+        "coherence": {
+            "average": 3.108108108108108,
+            "count": 148
+        },
+        "helpfulness": {
+            "average": 2.7837837837837838,
+            "count": 148
+        }
+    },
+    "neo4j_kg_rag": {
+        "bleu": {
+            "average": 0.010536706783258395,
+            "count": 147
+        },
+        "rouge_l": {
+            "average": 0.252440781624855,
+            "count": 147
+        },
+        "factual_accuracy": {
+            "average": 3.277027027027027,
+            "count": 148
+        },
+        "completeness": {
+            "average": 2.9662162162162162,
+            "count": 148
+        },
+        "coherence": {
+            "average": 3.3175675675675675,
+            "count": 148
+        },
+        "helpfulness": {
+            "average": 3.0405405405405403,
+            "count": 148
+        }
+    }
+}
