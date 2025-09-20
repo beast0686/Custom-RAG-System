@@ -46,6 +46,7 @@ openai==1.97.1
 packaging==25.0
 pandas==2.3.2
 pillow==11.3.0
+pip==25.2
 propcache==0.3.2
 pydantic==2.11.7
 pydantic_core==2.33.2
@@ -78,8 +79,8 @@ torch==2.7.1
 tqdm==4.67.1
 transformers==4.54.0
 typer==0.15.4
-typing-inspection==0.4.1
 typing_extensions==4.14.1
+typing-inspection==0.4.1
 tzdata==2025.2
 urllib3==2.5.0
 Werkzeug==3.1.3
