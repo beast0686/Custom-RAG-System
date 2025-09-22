@@ -15,12 +15,9 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
 
 # --- NLTK Setup ---
-try:
-    nltk.data.find('tokenizers/punkt')
-except nltk.downloader.DownloadError:
-    print("[INFO] NLTK 'punkt' not found. Downloading...")
-    nltk.download('punkt')
-    print("[INFO] Download complete.")
+print("[INFO] NLTK 'punkt' not found. Downloading...")
+nltk.download('punkt')
+print("[INFO] Download complete.")
 
 # Load environment variables from .env file
 os.environ.pop("SSL_CERT_FILE", None)
