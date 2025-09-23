@@ -13,11 +13,6 @@ def load_and_prepare_data(csv_path):
             df['Improvement'] = df['After'] - df['Before']
             df['Percentage Improvement'] = np.where(df['Before'] != 0, (df['Improvement'] / df['Before']) * 100, 0)
 
-            # Convert values to percentages for display
-            df['Before_Pct'] = df['Before'] * 100
-            df['After_Pct'] = df['After'] * 100
-            df['Improvement_Pct'] = df['Improvement'] * 100
-
             # Add trend indicators
             df['Trend'] = df['Percentage Improvement'].apply(
                 lambda x: 'Increase' if x > 0 else 'Decrease' if x < 0 else 'No Change')
@@ -29,58 +24,54 @@ def load_and_prepare_data(csv_path):
         return None
 
 
-def create_percentage_comparison_chart(df, colors):
-    """Create grouped bar chart with percentage values and trend indicators."""
+def create_percentage_improvement_comparison_chart(df, colors):
+    """Create bar chart showing percentage improvement for each metric."""
     fig, ax = plt.subplots(figsize=(12, 7))
 
-    x = np.arange(len(df['Metric']))
-    width = 0.35
+    # Sort by percentage improvement for better visualization
+    df_sorted = df.sort_values('Percentage Improvement', ascending=True)
 
-    bars1 = ax.bar(x - width / 2, df['Before_Pct'], width,
-                   label='Before (%)', color=colors['before'], alpha=0.85,
-                   edgecolor='white', linewidth=1.5)
-    bars2 = ax.bar(x + width / 2, df['After_Pct'], width,
-                   label='After (%)', color=colors['after'], alpha=0.85,
-                   edgecolor='white', linewidth=1.5)
+    # Color bars based on increase/decrease
+    bar_colors = [colors['increase'] if val > 0 else colors['decrease'] if val < 0 else colors['neutral']
+                  for val in df_sorted['Percentage Improvement']]
 
-    ax.set_xlabel('Metrics', fontsize=10, fontweight='bold')
-    ax.set_ylabel('Score (%)', fontsize=10, fontweight='bold')
-    ax.set_title('Before vs After Performance Comparison with Trend Indicators', fontweight='bold', fontsize=12, pad=20)
-    ax.set_xticks(x)
-    ax.set_xticklabels(df['Metric'], rotation=30, ha='right', fontsize=9)
-    ax.legend(fontsize=10, loc='upper left', fancybox=True, framealpha=0.9)
-    ax.grid(True, alpha=0.3, axis='y', linestyle='--', color='gray')
+    bars = ax.barh(df_sorted['Metric'], df_sorted['Percentage Improvement'],
+                   color=bar_colors, alpha=0.85, edgecolor='white', linewidth=1.5)
 
-    # Add value labels on bars with trend indicators
-    for i, (bar1, bar2) in enumerate(zip(bars1, bars2)):
-        # Before value
-        height1 = bar1.get_height()
-        ax.text(bar1.get_x() + bar1.get_width() / 2., height1 + 0.5,
-                f'{height1:.1f}%', ha='center', va='bottom', fontsize=8,
-                fontweight='bold', color='black')
+    ax.set_xlabel('Percentage Improvement (%)', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_ylabel('Metrics', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_title('Percentage Improvement by Metric (↑ Increase | ↓ Decrease)',
+                 fontweight='bold', fontsize=14, fontfamily='Times New Roman', pad=20)
+    ax.grid(True, alpha=0.3, axis='x', linestyle='--', color='gray')
+    ax.axvline(x=0, color='black', linestyle='-', linewidth=1)
 
-        # After value with trend symbol
-        height2 = bar2.get_height()
-        trend_symbol = df.iloc[i]['Trend_Symbol']
-        trend_color = colors['increase'] if df.iloc[i]['Percentage Improvement'] > 0 else colors['decrease']
+    # Set tick label font
+    ax.tick_params(axis='both', labelsize=12)
+    for tick in ax.get_xticklabels() + ax.get_yticklabels():
+        tick.set_fontfamily('Times New Roman')
 
-        ax.text(bar2.get_x() + bar2.get_width() / 2., height2 + 0.5,
-                f'{height2:.1f}%', ha='center', va='bottom', fontsize=8,
-                fontweight='bold', color='black')
+    # Add value labels on bars with trend symbols
+    for i, bar in enumerate(bars):
+        width = bar.get_width()
+        metric_data = df_sorted.iloc[i]
+        trend_symbol = metric_data['Trend_Symbol']
 
-        # Add trend arrow above the after bar
-        ax.text(bar2.get_x() + bar2.get_width() / 2., height2 + 2.5,
-                trend_symbol, ha='center', va='bottom', fontsize=12,
-                fontweight='bold', color=trend_color)
+        # Position text to the right or left of bar depending on positive/negative
+        x_pos = width + abs(width) * 0.02 if width >= 0 else width - abs(width) * 0.02
+        ha_pos = 'left' if width >= 0 else 'right'
+
+        ax.text(x_pos, bar.get_y() + bar.get_height() / 2,
+                f'{trend_symbol} {width:.2f}%', ha=ha_pos, va='center', fontsize=11,
+                fontweight='bold', color='black', fontfamily='Times New Roman')
 
     plt.tight_layout()
-    plt.savefig('charts/percentage_comparison_chart.png', dpi=300, bbox_inches='tight',
+    plt.savefig('charts/percentage_improvement_comparison.png', dpi=300, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
 
 
 def create_percentage_improvement_chart(df, colors):
-    """Create improvement chart showing percentage change with color coding."""
+    """Create vertical bar chart showing percentage improvement."""
     fig, ax = plt.subplots(figsize=(12, 7))
 
     df_sorted = df.sort_values('Percentage Improvement', ascending=False)
@@ -92,10 +83,17 @@ def create_percentage_improvement_chart(df, colors):
     bars = ax.bar(df_sorted['Metric'], df_sorted['Percentage Improvement'],
                   color=bar_colors, alpha=0.85, edgecolor='white', linewidth=1.5)
 
-    ax.set_xlabel('Metrics', fontsize=10, fontweight='bold')
-    ax.set_ylabel('Improvement (%)', fontsize=10, fontweight='bold')
-    ax.set_title('Percentage Improvement by Metric (↑ Increase | ↓ Decrease)', fontweight='bold', fontsize=12, pad=20)
-    ax.tick_params(axis='x', rotation=30, labelsize=9)
+    ax.set_xlabel('Metrics', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_ylabel('Percentage Improvement (%)', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_title('Percentage Improvement by Metric (↑ Increase | ↓ Decrease)',
+                 fontweight='bold', fontsize=14, fontfamily='Times New Roman', pad=20)
+    ax.tick_params(axis='x', rotation=45, labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+
+    # Set tick label font
+    for tick in ax.get_xticklabels() + ax.get_yticklabels():
+        tick.set_fontfamily('Times New Roman')
+
     ax.grid(True, alpha=0.3, axis='y', linestyle='--', color='gray')
     ax.axhline(y=0, color='black', linestyle='-', linewidth=1)
 
@@ -110,8 +108,8 @@ def create_percentage_improvement_chart(df, colors):
         va_pos = 'bottom' if height >= 0 else 'top'
 
         ax.text(bar.get_x() + bar.get_width() / 2., y_pos,
-                f'{trend_symbol} {height:.2f}%', ha='center', va=va_pos, fontsize=8,
-                fontweight='bold', color='black')
+                f'{trend_symbol} {height:.2f}%', ha='center', va=va_pos, fontsize=11,
+                fontweight='bold', color='black', fontfamily='Times New Roman')
 
     # Add legend for trend indicators
     from matplotlib.patches import Patch
@@ -120,142 +118,168 @@ def create_percentage_improvement_chart(df, colors):
         Patch(facecolor=colors['decrease'], label='Decrease ↓'),
         Patch(facecolor=colors['neutral'], label='No Change →')
     ]
-    ax.legend(handles=legend_elements, loc='upper right', fontsize=9)
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=12)
+    for text in legend.get_texts():
+        text.set_fontfamily('Times New Roman')
 
     plt.tight_layout()
-    plt.savefig('charts/percentage_improvement_chart.png', dpi=300, bbox_inches='tight',
+    plt.savefig('charts/percentage_improvement_vertical.png', dpi=300, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
 
 
-def create_percentage_radar_chart(df, colors):
-    """Create radar chart with percentage values and trend indicators."""
+def create_percentage_improvement_radar_chart(df, colors):
+    """Create radar chart showing percentage improvement values."""
     metrics = df['Metric'].tolist()
-    before_values = df['Before_Pct'].tolist()
-    after_values = df['After_Pct'].tolist()
+    improvement_values = df['Percentage Improvement'].tolist()
 
     N = len(metrics)
     angles = [n / float(N) * 2 * np.pi for n in range(N)]
     angles += angles[:1]
-
-    before_values += before_values[:1]
-    after_values += after_values[:1]
+    improvement_values += improvement_values[:1]
 
     fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
 
-    ax.plot(angles, before_values, 'o-', linewidth=3,
-            label='Before (%)', color=colors['before'], markersize=8,
-            markerfacecolor=colors['before'], markeredgecolor='white', markeredgewidth=2)
-    ax.fill(angles, before_values, alpha=0.25, color=colors['before'])
-
-    ax.plot(angles, after_values, 's-', linewidth=3,
-            label='After (%)', color=colors['after'], markersize=8,
-            markerfacecolor=colors['after'], markeredgecolor='white', markeredgewidth=2)
-    ax.fill(angles, after_values, alpha=0.25, color=colors['after'])
+    # Color code the line based on improvements
+    ax.plot(angles, improvement_values, 'o-', linewidth=3,
+            label='Improvement (%)', color=colors['improvement'], markersize=8,
+            markerfacecolor=colors['improvement'], markeredgecolor='white', markeredgewidth=2)
+    ax.fill(angles, improvement_values, alpha=0.25, color=colors['improvement'])
 
     # Add trend symbols for each metric
     for i, (angle, metric) in enumerate(zip(angles[:-1], metrics)):
         trend_symbol = df.iloc[i]['Trend_Symbol']
         trend_color = colors['increase'] if df.iloc[i]['Percentage Improvement'] > 0 else colors['decrease']
-        max_val = max(before_values[i], after_values[i])
+        val = improvement_values[i]
 
-        ax.text(angle, max_val * 1.15, trend_symbol, ha='center', va='center',
-                fontsize=14, fontweight='bold', color=trend_color)
+        # Position symbols outside the data points
+        radius = abs(val) * 1.2 if val != 0 else 5
+        ax.text(angle, radius, trend_symbol, ha='center', va='center',
+                fontsize=14, fontweight='bold', color=trend_color, fontfamily='Times New Roman')
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(metrics, fontsize=9, fontweight='bold')
-    ax.set_title('Radar Chart: Performance Comparison with Trends (↑↓)', fontweight='bold', fontsize=12, pad=40)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0), fontsize=10, fancybox=True, framealpha=0.9)
+    ax.set_xticklabels(metrics, fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_title('Radar Chart: Percentage Improvement with Trends (↑↓)',
+                 fontweight='bold', fontsize=14, fontfamily='Times New Roman', pad=40)
+
+    # Set radial tick labels font
+    ax.tick_params(axis='y', labelsize=12)
+    for tick in ax.get_yticklabels():
+        tick.set_fontfamily('Times New Roman')
+
+    legend = ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0), fontsize=12,
+                       fancybox=True, framealpha=0.9)
+    for text in legend.get_texts():
+        text.set_fontfamily('Times New Roman')
+
     ax.grid(True, alpha=0.4, linestyle='--', color='gray')
 
-    max_val = max(max(df['Before_Pct']), max(df['After_Pct']))
-    ax.set_ylim(0, max_val * 1.2)
+    # Set appropriate scale for improvement values
+    max_abs_val = max(abs(val) for val in improvement_values[:-1])
+    ax.set_ylim(-max_abs_val * 1.3, max_abs_val * 1.3)
 
     plt.tight_layout()
-    plt.savefig('charts/percentage_radar_chart.png', dpi=300, bbox_inches='tight',
+    plt.savefig('charts/percentage_improvement_radar.png', dpi=300, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
 
 
-def create_percentage_line_chart(df, colors):
-    """Create line chart with percentage values and trend indicators."""
+def create_percentage_improvement_line_chart(df, colors):
+    """Create line chart showing percentage improvement trends."""
     fig, ax = plt.subplots(figsize=(12, 7))
 
     x_pos = range(len(df['Metric']))
 
-    ax.plot(x_pos, df['Before_Pct'], marker='o', linewidth=3,
-            label='Before (%)', color=colors['before'], markersize=8,
-            markerfacecolor=colors['before'], markeredgecolor='white', markeredgewidth=2)
-    ax.plot(x_pos, df['After_Pct'], marker='s', linewidth=3,
-            label='After (%)', color=colors['after'], markersize=8,
-            markerfacecolor=colors['after'], markeredgecolor='white', markeredgewidth=2)
+    # Sort by metric name for consistent ordering
+    df_sorted = df.sort_values('Metric')
 
-    # Add trend arrows between points
-    for i in range(len(df)):
-        before_val = df.iloc[i]['Before_Pct']
-        after_val = df.iloc[i]['After_Pct']
-        trend_symbol = df.iloc[i]['Trend_Symbol']
-        trend_color = colors['increase'] if df.iloc[i]['Percentage Improvement'] > 0 else colors['decrease']
+    ax.plot(x_pos, df_sorted['Percentage Improvement'], marker='o', linewidth=3,
+            label='Improvement (%)', color=colors['improvement'], markersize=10,
+            markerfacecolor=colors['improvement'], markeredgecolor='white', markeredgewidth=2)
 
-        mid_y = (before_val + after_val) / 2
-        ax.annotate(trend_symbol, xy=(i, mid_y), fontsize=12, fontweight='bold',
-                    color=trend_color, ha='center', va='center')
+    # Color code points based on increase/decrease
+    for i, (x, y) in enumerate(zip(x_pos, df_sorted['Percentage Improvement'])):
+        color = colors['increase'] if y > 0 else colors['decrease'] if y < 0 else colors['neutral']
+        trend_symbol = df_sorted.iloc[i]['Trend_Symbol']
 
-    ax.set_xlabel('Metrics', fontsize=10, fontweight='bold')
-    ax.set_ylabel('Score (%)', fontsize=10, fontweight='bold')
-    ax.set_title('Performance Trends with Change Indicators (↑↓)', fontweight='bold', fontsize=12, pad=20)
+        # Add colored markers
+        ax.scatter(x, y, color=color, s=150, alpha=0.8, edgecolors='white', linewidth=2, zorder=5)
+
+        # Add trend symbols above/below points
+        y_offset = abs(y) * 0.1 + 2 if y >= 0 else -(abs(y) * 0.1 + 2)
+        ax.text(x, y + y_offset, trend_symbol, ha='center', va='center',
+                fontsize=12, fontweight='bold', color=color, fontfamily='Times New Roman')
+
+    ax.set_xlabel('Metrics', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_ylabel('Percentage Improvement (%)', fontsize=12, fontweight='bold', fontfamily='Times New Roman')
+    ax.set_title('Percentage Improvement Trends with Change Indicators (↑↓)',
+                 fontweight='bold', fontsize=14, fontfamily='Times New Roman', pad=20)
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(df['Metric'], rotation=30, ha='right', fontsize=9)
-    ax.legend(fontsize=10, loc='upper left', fancybox=True, framealpha=0.9)
+    ax.set_xticklabels(df_sorted['Metric'], rotation=45, ha='right', fontsize=12, fontfamily='Times New Roman')
+    ax.tick_params(axis='y', labelsize=12)
+
+    # Set tick label font
+    for tick in ax.get_yticklabels():
+        tick.set_fontfamily('Times New Roman')
+
+    legend = ax.legend(fontsize=12, loc='upper left', fancybox=True, framealpha=0.9)
+    for text in legend.get_texts():
+        text.set_fontfamily('Times New Roman')
+
     ax.grid(True, alpha=0.3, linestyle='--', color='gray')
+    ax.axhline(y=0, color='black', linestyle='-', linewidth=1, alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig('charts/percentage_line_chart.png', dpi=300, bbox_inches='tight',
+    plt.savefig('charts/percentage_improvement_line.png', dpi=300, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
 
 
-def generate_percentage_summary_stats(df):
-    """Generate detailed summary statistics with trend analysis."""
+def generate_percentage_improvement_summary(df):
+    """Generate summary statistics focused on percentage improvements."""
     print("\n" + "=" * 70)
-    print("PERCENTAGE-BASED DATASET SUMMARY WITH TREND ANALYSIS")
+    print("PERCENTAGE IMPROVEMENT ANALYSIS")
     print("=" * 70)
-    print(f"Number of metrics: {len(df)}")
+    print(f"Number of metrics analyzed: {len(df)}")
     print(f"Average percentage improvement: {df['Percentage Improvement'].mean():.2f}%")
+    print(
+        f"Total improvement range: {df['Percentage Improvement'].min():.2f}% to {df['Percentage Improvement'].max():.2f}%")
 
     increases = df[df['Percentage Improvement'] > 0]
     decreases = df[df['Percentage Improvement'] < 0]
     no_change = df[df['Percentage Improvement'] == 0]
 
-    print(f"\nTrend Analysis:")
-    print(f"↑ Metrics with increase: {len(increases)} ({len(increases) / len(df) * 100:.1f}%)")
-    print(f"↓ Metrics with decrease: {len(decreases)} ({len(decreases) / len(df) * 100:.1f}%)")
+    print(f"\nImprovement Distribution:")
+    print(f"↑ Metrics showing improvement: {len(increases)} ({len(increases) / len(df) * 100:.1f}%)")
+    print(f"↓ Metrics showing decline: {len(decreases)} ({len(decreases) / len(df) * 100:.1f}%)")
     print(f"→ Metrics with no change: {len(no_change)} ({len(no_change) / len(df) * 100:.1f}%)")
 
     if len(increases) > 0:
         best_metric = increases.loc[increases['Percentage Improvement'].idxmax()]
-        print(f"\n↑ Best performing metric: {best_metric['Metric']}")
-        print(f"   Largest improvement: +{best_metric['Percentage Improvement']:.2f}%")
-        print(f"   Average improvement: +{increases['Percentage Improvement'].mean():.2f}%")
+        print(f"\n🏆 Best improvement: {best_metric['Metric']}")
+        print(f"   Percentage increase: +{best_metric['Percentage Improvement']:.2f}%")
+        print(f"   From {best_metric['Before']:.4f} to {best_metric['After']:.4f}")
 
     if len(decreases) > 0:
         worst_metric = decreases.loc[decreases['Percentage Improvement'].idxmin()]
-        print(f"\n↓ Worst performing metric: {worst_metric['Metric']}")
-        print(f"   Largest decrease: {worst_metric['Percentage Improvement']:.2f}%")
-        print(f"   Average decrease: {decreases['Percentage Improvement'].mean():.2f}%")
+        print(f"\n⚠️  Largest decline: {worst_metric['Metric']}")
+        print(f"   Percentage decrease: {worst_metric['Percentage Improvement']:.2f}%")
+        print(f"   From {worst_metric['Before']:.4f} to {worst_metric['After']:.4f}")
 
-    print("\nDetailed metrics data with trends:")
-    display_df = df[['Metric', 'Before_Pct', 'After_Pct', 'Percentage Improvement', 'Trend_Symbol']].copy()
-    display_df.columns = ['Metric', 'Before (%)', 'After (%)', 'Change (%)', 'Trend']
-    print(display_df.to_string(index=False, float_format='%.2f'))
+    print(f"\nRanked by Percentage Improvement:")
+    display_df = df.sort_values('Percentage Improvement', ascending=False)[
+        ['Metric', 'Before', 'After', 'Percentage Improvement', 'Trend_Symbol']].copy()
+    display_df.columns = ['Metric', 'Before', 'After', 'Improvement (%)', 'Trend']
+    print(display_df.to_string(index=False, float_format='%.4f'))
 
 
 # Main execution
 if __name__ == "__main__":
     os.makedirs('charts', exist_ok=True)
 
+    # Professional font settings for research papers
     plt.rcParams.update({
-        'font.size': 10,
+        'font.size': 12,  # Base font size for body text
         'font.family': 'Times New Roman',
         'font.weight': 'normal',
         'axes.linewidth': 1.2,
@@ -271,44 +295,44 @@ if __name__ == "__main__":
         'legend.framealpha': 0.9,
         'legend.facecolor': 'white',
         'legend.edgecolor': 'gray',
-        'legend.fontsize': 10,
+        'legend.fontsize': 12,  # Legend text size
         'xtick.major.size': 4,
         'ytick.major.size': 4,
+        'xtick.labelsize': 12,  # X-axis tick label size
+        'ytick.labelsize': 12,  # Y-axis tick label size
+        'axes.labelsize': 12,  # Axis label size
+        'axes.titlesize': 14,  # Title size for headings
         'axes.axisbelow': True,
         'figure.facecolor': 'white',
         'axes.facecolor': 'white'
     })
 
-    # Enhanced color palette with trend indicators
+    # Enhanced color palette for improvement visualization
     colors = {
-        'before': '#E74C3C',  # Vibrant red
-        'after': '#3498DB',  # Bright blue
-        'improvement': '#2ECC71',  # Emerald green
+        'before': '#E74C3C',
+        'after': '#3498DB',
+        'improvement': '#9B59B6',  # Purple for improvement line
         'increase': '#27AE60',  # Green for increases
         'decrease': '#E74C3C',  # Red for decreases
         'neutral': '#95A5A6',  # Gray for no change
-        'improvement_gradient': [
-            '#2ECC71', '#F39C12', '#9B59B6', '#E67E22',
-            '#1ABC9C', '#34495E', '#E91E63', '#FF5722'
-        ]
     }
 
     df = load_and_prepare_data('metrics.csv')
 
     if df is not None:
         print(f"Dataset loaded: {df.shape[0]} metrics, {df.shape[1]} columns")
-        print("\nGenerating enhanced charts with trend indicators...")
+        print("\nGenerating percentage improvement charts...")
 
-        create_percentage_comparison_chart(df, colors)
-        print("✓ Enhanced comparison chart with trends saved: charts/percentage_comparison_chart.png")
+        create_percentage_improvement_comparison_chart(df, colors)
+        print("✓ Horizontal improvement chart saved: charts/percentage_improvement_comparison.png")
 
         create_percentage_improvement_chart(df, colors)
-        print("✓ Color-coded improvement chart saved: charts/percentage_improvement_chart.png")
+        print("✓ Vertical improvement chart saved: charts/percentage_improvement_vertical.png")
 
-        create_percentage_radar_chart(df, colors)
-        print("✓ Radar chart with trend indicators saved: charts/percentage_radar_chart.png")
+        create_percentage_improvement_radar_chart(df, colors)
+        print("✓ Improvement radar chart saved: charts/percentage_improvement_radar.png")
 
-        create_percentage_line_chart(df, colors)
-        print("✓ Line chart with change indicators saved: charts/percentage_line_chart.png")
+        create_percentage_improvement_line_chart(df, colors)
+        print("✓ Improvement line chart saved: charts/percentage_improvement_line.png")
 
-        generate_percentage_summary_stats(df)
+        generate_percentage_improvement_summary(df)
