@@ -66,8 +66,8 @@ def create_percentage_improvement_comparison_chart(df, colors):
                 fontweight='bold', color='black', fontfamily='Times New Roman')
 
     plt.tight_layout()
-    plt.savefig('charts/percentage_improvement_comparison.png', dpi=300, bbox_inches='tight',
-                transparent=True, format='png')
+    plt.savefig('charts/percentage_improvement_comparison.svg', dpi=600, bbox_inches='tight',
+                transparent=True, format='svg')
     plt.close()
 
 
@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     # Professional font settings for research papers
     plt.rcParams.update({
-        'font.size': 12,  # Base font size for body text
+        'font.size': 16,            # Base font size for body text
         'font.family': 'Times New Roman',
         'font.weight': 'normal',
         'axes.linewidth': 1.2,
@@ -299,16 +299,16 @@ if __name__ == "__main__":
         'legend.framealpha': 0.9,
         'legend.facecolor': 'white',
         'legend.edgecolor': 'gray',
-        'legend.fontsize': 12,  # Legend text size
+        'legend.fontsize': 14,      # Legend text size
         'xtick.major.size': 4,
         'ytick.major.size': 4,
-        'xtick.labelsize': 12,  # X-axis tick label size
-        'ytick.labelsize': 12,  # Y-axis tick label size
-        'axes.labelsize': 12,  # Axis label size
-        'axes.titlesize': 14,  # Title size for headings
+        'xtick.labelsize': 14,      # X-axis tick label size
+        'ytick.labelsize': 14,      # Y-axis tick label size
+        'axes.labelsize': 16,       # Axis label size
+        'axes.titlesize': 18,       # Title size for headings
         'axes.axisbelow': True,
-        'figure.facecolor': 'none',  # Transparent figure background
-        'axes.facecolor': 'none'     # Transparent axes background
+        'figure.facecolor': 'none',
+        'axes.facecolor': 'none'
     })
 
     # Enhanced color palette for improvement visualization
