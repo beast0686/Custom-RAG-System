@@ -27,6 +27,7 @@ def load_and_prepare_data(csv_path):
 def create_percentage_improvement_comparison_chart(df, colors):
     """Create bar chart showing percentage improvement for each metric."""
     fig, ax = plt.subplots(figsize=(12, 7))
+    fig.patch.set_alpha(0)  # Transparent figure background
 
     # Sort by percentage improvement for better visualization
     df_sorted = df.sort_values('Percentage Improvement', ascending=True)
@@ -66,13 +67,14 @@ def create_percentage_improvement_comparison_chart(df, colors):
 
     plt.tight_layout()
     plt.savefig('charts/percentage_improvement_comparison.png', dpi=300, bbox_inches='tight',
-                facecolor='white', edgecolor='none')
+                transparent=True, format='png')
     plt.close()
 
 
 def create_percentage_improvement_chart(df, colors):
     """Create vertical bar chart showing percentage improvement."""
     fig, ax = plt.subplots(figsize=(12, 7))
+    fig.patch.set_alpha(0)  # Transparent figure background
 
     df_sorted = df.sort_values('Percentage Improvement', ascending=False)
 
@@ -124,7 +126,7 @@ def create_percentage_improvement_chart(df, colors):
 
     plt.tight_layout()
     plt.savefig('charts/percentage_improvement_vertical.png', dpi=300, bbox_inches='tight',
-                facecolor='white', edgecolor='none')
+                transparent=True, format='png')
     plt.close()
 
 
@@ -139,6 +141,7 @@ def create_percentage_improvement_radar_chart(df, colors):
     improvement_values += improvement_values[:1]
 
     fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
+    fig.patch.set_alpha(0)  # Transparent figure background
 
     # Color code the line based on improvements
     ax.plot(angles, improvement_values, 'o-', linewidth=3,
@@ -180,13 +183,14 @@ def create_percentage_improvement_radar_chart(df, colors):
 
     plt.tight_layout()
     plt.savefig('charts/percentage_improvement_radar.png', dpi=300, bbox_inches='tight',
-                facecolor='white', edgecolor='none')
+                transparent=True, format='png')
     plt.close()
 
 
 def create_percentage_improvement_line_chart(df, colors):
     """Create line chart showing percentage improvement trends."""
     fig, ax = plt.subplots(figsize=(12, 7))
+    fig.patch.set_alpha(0)  # Transparent figure background
 
     x_pos = range(len(df['Metric']))
 
@@ -231,7 +235,7 @@ def create_percentage_improvement_line_chart(df, colors):
 
     plt.tight_layout()
     plt.savefig('charts/percentage_improvement_line.png', dpi=300, bbox_inches='tight',
-                facecolor='white', edgecolor='none')
+                transparent=True, format='png')
     plt.close()
 
 
@@ -303,8 +307,8 @@ if __name__ == "__main__":
         'axes.labelsize': 12,  # Axis label size
         'axes.titlesize': 14,  # Title size for headings
         'axes.axisbelow': True,
-        'figure.facecolor': 'white',
-        'axes.facecolor': 'white'
+        'figure.facecolor': 'none',  # Transparent figure background
+        'axes.facecolor': 'none'     # Transparent axes background
     })
 
     # Enhanced color palette for improvement visualization
@@ -321,7 +325,7 @@ if __name__ == "__main__":
 
     if df is not None:
         print(f"Dataset loaded: {df.shape[0]} metrics, {df.shape[1]} columns")
-        print("\nGenerating percentage improvement charts...")
+        print("\nGenerating percentage improvement charts with transparent backgrounds...")
 
         create_percentage_improvement_comparison_chart(df, colors)
         print("✓ Horizontal improvement chart saved: charts/percentage_improvement_comparison.png")
