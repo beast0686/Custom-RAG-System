@@ -1,0 +1,13 @@
+Sentence,Unmitigated E(Z),Mitigated E(Z) (TREX),Unmitigated Prob(0),Mitigated Prob(0) (TREX),Binary Outcome (Raw),Binary Outcome (Mitigated)
+The old man the boat.,-0.703125,-0.7116205030245145,0.1484375,0.14418974848774274,0,0
+The complex houses married and single soldiers.,-0.61083984375,-0.6779570963671382,0.194580078125,0.1610214518164309,0,0
+The horse raced past the barn fell.,-0.85693359375,-0.8860273633380796,0.071533203125,0.056986318330960184,0,0
+The florist sent the flowers was pleased.,-0.1904296875,-0.19711508698074662,0.40478515625,0.4014424565096267,0,0
+"Using the silk napkin, the chef crushed the garlic.",-0.3720703125,-0.3569374933446917,0.31396484375,0.32153125332765414,0,0
+"Using the wooden stick, the farmer tilled the soil.",-0.26806640625,-0.27522082752208277,0.365966796875,0.3623895862389586,0,0
+The shattered glass cut the heavy steel hammer.,-0.0029296875,0.03506674636381749,0.49853515625,0.5175333731819087,0,1
+The boiling water burned the hot stove.,-0.62255859375,-0.6885833831440527,0.188720703125,0.15570830842797367,0,0
+The maid dusted the shelf with the torn sock worn over the feather duster.,-0.60009765625,-0.6489488298294328,0.199951171875,0.1755255850852836,0,0
+The butcher cleaved the bone with the iron pan swung at the meat cleaver.,-0.48291015625,-0.4797414864528958,0.258544921875,0.2601292567735521,0,0
+The thief picked the lock with the plastic comb attached to the lock pick.,-0.06005859375,-0.07208550832711906,0.469970703125,0.4639572458364405,0,0
+The soldier deflected the bullet with the wooden plank holding the bullet shield.,-0.3330078125,-0.3165163297045101,0.33349609375,0.3417418351477449,0,0

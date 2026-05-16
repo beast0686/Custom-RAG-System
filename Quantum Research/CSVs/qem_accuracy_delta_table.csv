@@ -1,0 +1,2 @@
+Metric,Unmitigated Baseline (Hardware Noise),TREX Mitigated State (Purified),Accuracy Restored by QEM
+Top-1 Parsing Accuracy,62.00%,76.67%,+14.67%

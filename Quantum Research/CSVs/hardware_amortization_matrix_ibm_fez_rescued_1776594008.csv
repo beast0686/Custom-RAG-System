@@ -1,0 +1,6 @@
+Batch Size,Amortized Sequential (s/query),Amortized Batched (s/query),Hardware Speedup Factor
+1,129.92,129.92,1.0
+5,129.92,26.62,4.88
+10,129.92,26.62,4.88
+20,129.92,26.62,4.88
+50,129.92,26.62,4.88

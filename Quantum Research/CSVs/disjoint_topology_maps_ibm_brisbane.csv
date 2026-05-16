@@ -1,0 +1,6 @@
+Hardware Sub-Topology,Physical Qubits Allocated,Circuit Capacity,Crosstalk Isolation Status
+SubGraph_Alpha,"[0, 1, 2, 3, 4, 5, 6]",1 Query (7-qubit Ansatz),Verified Disjoint
+SubGraph_Beta,"[14, 15, 16, 17, 18, 19, 20]",1 Query (7-qubit Ansatz),Verified Disjoint
+SubGraph_Gamma,"[27, 28, 29, 30, 31, 32, 33]",1 Query (7-qubit Ansatz),Verified Disjoint
+SubGraph_Delta,"[41, 42, 43, 44, 45, 46, 47]",1 Query (7-qubit Ansatz),Verified Disjoint
+SubGraph_Epsilon,"[53, 54, 55, 56, 57, 58, 59]",1 Query (7-qubit Ansatz),Verified Disjoint

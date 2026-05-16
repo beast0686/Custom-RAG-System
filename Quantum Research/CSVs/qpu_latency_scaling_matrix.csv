@@ -1,0 +1,6 @@
+Batch Size,Sequential Wall-Clock (s),Batched Wall-Clock (s),QPU Compute Time (s),Amortized NISQ Tax Sequential (s/query),Amortized NISQ Tax Batched (s/query),Speedup Factor
+1,2802.5,2802.5,2.5,2802.5,2802.5,1.0
+5,14012.5,2802.5,12.5,2802.5,560.5,5.0
+10,28025.0,5605.0,25.0,2802.5,560.5,5.0
+20,56050.0,11210.0,50.0,2802.5,560.5,5.0
+50,140125.0,28025.0,125.0,2802.5,560.5,5.0

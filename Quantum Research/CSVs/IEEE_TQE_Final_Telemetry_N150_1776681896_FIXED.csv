@@ -1,0 +1,151 @@
+Query_ID,Sentence,Unmitigated E(θ),Mitigated E(θ) (TREX),Probability Drift (ΔE)
+Q_1,The old man the boat.,-0.9873,-1.0,0.0127
+Q_2,The complex houses married and single soldiers.,-0.9443,-1.0,0.0557
+Q_3,The prime number few.,-0.981,-1.0,0.019
+Q_4,The blind lead the blind.,0.999,1.0,0.001
+Q_5,The fast run the marathon.,0.9985,1.0,0.0015
+Q_6,The sick need the medicine.,0.9966,1.0,0.0034
+Q_7,The young play the game.,-0.9844,-1.0,0.0156
+Q_8,The strong lift the weights.,-0.981,-1.0,0.019
+Q_9,The weak fear the storm.,0.999,1.0,0.001
+Q_10,The smart solve the puzzle.,0.9985,1.0,0.0015
+Q_11,The wise guide the youth.,0.999,1.0,0.001
+Q_12,The tall reach the top.,0.9966,1.0,0.0034
+Q_13,The swift win the race.,-0.9839,-1.0,0.0161
+Q_14,The elite control the market.,0.9956,1.0,0.0044
+Q_15,The dead haunt the castle.,-0.9883,-1.0,0.0117
+Q_16,The hungry eat the bread.,-0.9829,-1.0,0.0171
+Q_17,The rich fund the charity.,-0.9814,-1.0,0.0186
+Q_18,The brave charge the enemy.,0.9995,1.0,0.0005
+Q_19,The poor lack the resources.,-0.9785,-1.0,0.0215
+Q_20,The bold dare the impossible.,-0.9829,-1.0,0.0171
+Q_21,The innocent suffer the consequences.,-0.9844,-1.0,0.0156
+Q_22,The guilty serve the sentence.,-0.9824,-1.0,0.0176
+Q_23,The free roam the plains.,0.9956,1.0,0.0044
+Q_24,The wild roam the forest.,-0.9868,-1.0,0.0132
+Q_25,The very profoundly deeply and incredibly extraordinarily faithful pure aggressively and continuously cleanse the eternal soul.,-0.8994,-0.9409,0.0415
+Q_26,The horse raced past the barn fell.,-0.9414,-0.9982,0.0568
+Q_27,The florist sent the flowers was pleased.,0.9575,0.9694,0.0119
+Q_28,The student asked the question hesitated.,-0.9648,-0.9809,0.0161
+Q_29,The suspect interrogated by the police confessed.,0.9756,1.0,0.0244
+Q_30,The car driven past the house crashed.,-0.9526,-1.0,0.0474
+Q_31,The athlete injured in the game cried.,-0.9438,-0.9987,0.0549
+Q_32,The man bitten by the dog howled.,-0.9453,-1.0,0.0547
+Q_33,The child pushed down the slide laughed.,0.9854,1.0,0.0146
+Q_34,The woman painted by the artist smiled.,0.9761,1.0,0.0239
+Q_35,The bird watched by the cat flew.,-0.9453,-1.0,0.0547
+Q_36,The ship sailed across the sea sank.,-0.9473,-1.0,0.0527
+Q_37,The letter mailed to the boss vanished.,-0.9448,-0.9982,0.0534
+Q_38,The gold mined from the cave gleamed.,-0.9419,-1.0,0.0581
+Q_39,The food cooked by the chef burned.,-0.9673,-1.0,0.0327
+Q_40,The song sung by the choir echoed.,-0.9424,-0.9946,0.0522
+Q_41,The book read by the class vanished.,0.9712,1.0,0.0288
+Q_42,The movie directed by the star flopped.,-0.9434,-1.0,0.0566
+Q_43,The play rehearsed in the hall started.,0.979,1.0,0.021
+Q_44,The team coached by the veteran won.,0.9741,1.0,0.0259
+Q_45,The army led into battle charged.,0.9731,1.0,0.0269
+Q_46,The patient treated by the nurse recovered.,-0.9585,-1.0,0.0415
+Q_47,The code written by the dev compiled.,-0.9609,-1.0,0.0391
+Q_48,The cake baked by the mom cooled.,-0.937,-1.0,0.063
+Q_49,The window broken by the rock shattered.,-0.9497,-1.0,0.0503
+Q_50,The incredibly ancient and massively towering oak tree suddenly struck by the fiercely violent lightning dramatically split.,-0.9849,-1.0,0.0151
+Q_51,"Using the silk napkin, the chef crushed the garlic, completely ignoring the garlic press.",-0.9521,-1.0,0.0479
+Q_52,"Using the wooden stick, the farmer tilled the soil, completely ignoring the soil plow.",-0.9526,-0.9663,0.0137
+Q_53,"Using the wooden mallet, the miner cracked the rock, completely ignoring the rock drill.",0.9561,0.9704,0.0143
+Q_54,"Using the cotton shirt, the camper filtered the water, completely ignoring the water mesh.",0.9702,0.9956,0.0254
+Q_55,"Using the wet noodle, the carpenter drove the nail, completely ignoring the nail hammer.",-0.8599,-0.8586,0.0013
+Q_56,"Using the glass slipper, the mechanic tightened the bolt, completely ignoring the bolt wrench.",-0.9712,-1.0,0.0288
+Q_57,"Using the feather duster, the lumberjack felled the tree, completely ignoring the tree axe.",-0.9224,-0.9663,0.0439
+Q_58,"Using the rubber duck, the surgeon cut the tissue, completely ignoring the tissue scalpel.",-0.9609,-1.0,0.0391
+Q_59,"Using the paper straw, the blacksmith shaped the iron, completely ignoring the iron anvil.",-0.9312,-0.9471,0.0159
+Q_60,"Using the cotton swab, the soldier breached the door, completely ignoring the door explosive.",-0.9614,-1.0,0.0386
+Q_61,"Using the slice of bread, the painter coated the wall, completely ignoring the wall brush.",-0.9062,-0.9339,0.0277
+Q_62,"Using the ice cube, the tailor stitched the fabric, completely ignoring the fabric needle.",-0.9419,-0.9791,0.0372
+Q_63,"Using the playing card, the gardener pruned the rose, completely ignoring the rose shears.",-0.9507,-0.9739,0.0232
+Q_64,"Using the shoelace, the sculptor chiseled the marble, completely ignoring the marble chisel.",-0.9512,-0.9976,0.0464
+Q_65,"Using the plastic spoon, the butcher carved the meat, completely ignoring the meat cleaver.",0.9907,0.9877,0.003
+Q_66,"Using the paper clip, the electrician stripped the wire, completely ignoring the wire cutter.",-0.9619,-0.9996,0.0377
+Q_67,"Using the coffee filter, the astronomer cleaned the lens, completely ignoring the lens cloth.",-0.9829,-0.9896,0.0067
+Q_68,"Using the torn receipt, the janitor mopped the floor, completely ignoring the floor mop.",0.938,0.9625,0.0245
+Q_69,"Using the wet leaf, the barber shaved the beard, completely ignoring the beard razor.",-0.9053,-0.9735,0.0682
+Q_70,"Using the guitar string, the baker sliced the cake, completely ignoring the cake knife.",0.9937,1.0,0.0063
+Q_71,"Using the tennis ball, the mason laid the brick, completely ignoring the brick trowel.",-0.9497,-0.9936,0.0439
+Q_72,"Using the velvet ribbon, the lumberjack sawed the log, completely ignoring the log saw.",0.938,0.9418,0.0038
+Q_73,"Using the matchstick, the chef stirred the soup, completely ignoring the soup ladle.",0.9912,1.0,0.0088
+Q_74,"Using the rubber band, the archer fired the arrow, completely ignoring the arrow bow.",-0.9131,-0.9592,0.0461
+Q_75,"Using the sponge, the knight sharpened the sword, completely ignoring the sword whetstone.",0.9702,1.0,0.0298
+Q_76,The shattered glass cut the heavy steel hammer.,0.9785,0.9911,0.0126
+Q_77,The boiling water burned the hot stove.,-0.9575,-1.0,0.0425
+Q_78,The wooden log sawed the sharp steel chainsaw.,0.9712,0.9839,0.0127
+Q_79,The rusted nail hammered the heavy iron mallet.,0.9751,0.9884,0.0133
+Q_80,The cooked steak grilled the hot barbecue.,-0.9531,-0.9849,0.0318
+Q_81,The digital code programmed the software engineer.,0.9746,0.9954,0.0208
+Q_82,The blank canvas painted the famous artist.,-0.9492,-0.9839,0.0347
+Q_83,The grand symphony composed the classical musician.,-0.9531,-1.0,0.0469
+Q_84,The carved marble sculpted the Italian master.,-0.9336,-1.0,0.0664
+Q_85,The torn fabric stitched the old sewing machine.,-0.9487,-0.9799,0.0312
+Q_86,The fresh dirt dug the rusty metal shovel.,-0.9512,-0.9819,0.0307
+Q_87,The clean dishes washed the liquid soap.,-0.9585,-1.0,0.0415
+Q_88,The fast car drove the professional racer.,-0.9565,-0.9789,0.0224
+Q_89,The complex equation solved the brilliant mathematician.,0.9756,1.0,0.0244
+Q_90,The written novel authored the famous writer.,-0.957,-0.9854,0.0284
+Q_91,The caught fish hooked the fishing rod.,-0.9463,-1.0,0.0537
+Q_92,The eaten apple bit the hungry child.,-0.9849,-0.9876,0.0027
+Q_93,The loud bell rang the church ringer.,-0.9546,-0.9784,0.0238
+Q_94,The locked door turned the brass key.,0.9771,0.9914,0.0143
+Q_95,The swept floor brushed the wooden broom.,-0.958,-1.0,0.042
+Q_96,The cut grass mowed the riding mower.,-0.958,-0.9769,0.0189
+Q_97,The printed paper jammed the office printer.,-0.9517,-1.0,0.0483
+Q_98,The built house constructed the tired carpenter.,0.9741,0.9854,0.0113
+Q_99,The heavily burning lit candle surprisingly struck the fragile wooden match.,-0.9312,-0.9339,0.0027
+Q_100,"The miraculously and unexpectedly cured patient, defying all known medical logic, completely healed the exhausted head doctor.",-0.9702,-0.9752,0.005
+Q_101,The maid dusted the shelf with the torn sock worn over the feather duster.,-0.9727,-0.9844,0.0117
+Q_102,The butcher cleaved the bone with the iron pan swung at the meat cleaver.,-0.9463,-1.0,0.0537
+Q_103,The sommelier uncorked the wine with the steel screw resting inside the corkscrew.,-0.9404,-0.9505,0.0101
+Q_104,The referee blew the whistle with the latex glove holding the metal whistle.,0.9707,1.0,0.0293
+Q_105,The jeweler inspected the diamond with the glass bead resting inside the jeweler's loupe.,-0.9604,-0.9926,0.0322
+Q_106,The cleaner dusted the blind with the ripped shirt resting inside the feather duster.,-0.9521,-1.0,0.0479
+Q_107,The mason cracked the brick with the iron weight swung at the masonry chisel.,-0.9487,-1.0,0.0513
+Q_108,The baker glazed the pastry with the tissue paper wrapped around the pastry brush.,-0.9722,-0.9859,0.0137
+Q_109,The chef sliced the roast with the dull coin embedded in the chef knife.,-0.8975,-0.9325,0.035
+Q_110,The farmer tilled the soil with the wooden stick tied to the soil plow.,-0.9717,-0.9834,0.0117
+Q_111,The surgeon cut the tissue with the rubber duck taped to the tissue scalpel.,-0.9644,-0.9911,0.0267
+Q_112,The carpenter drove the nail with the wet noodle draped over the nail hammer.,-0.9688,-0.9903,0.0215
+Q_113,The mechanic tightened the bolt with the glass slipper pressing the bolt wrench.,-0.9736,-0.994,0.0204
+Q_114,The lumberjack felled the tree with the feather duster tied to the tree axe.,-0.9727,-0.9829,0.0102
+Q_115,The blacksmith shaped the iron with the paper straw stuck to the iron anvil.,-0.8926,-0.9406,0.048
+Q_116,The painter coated the wall with the slice of bread pressed to the wall brush.,0.9287,0.9441,0.0154
+Q_117,The tailor stitched the fabric with the ice cube touching the fabric needle.,0.978,1.0,0.022
+Q_118,The gardener pruned the rose with the playing card glued to the rose shears.,0.9282,0.9396,0.0114
+Q_119,The sculptor chiseled the marble with the shoelace wrapped on the marble chisel.,-0.8975,-0.9376,0.0401
+Q_120,The electrician stripped the wire with the paper clip touching the wire cutter.,-0.98,-0.9911,0.0111
+Q_121,The janitor mopped the floor with the torn receipt stuck to the floor mop.,-0.9624,-1.0,0.0376
+Q_122,The barber shaved the beard with the wet leaf covering the beard razor.,-0.938,-1.0,0.062
+Q_123,The archer fired the arrow with the rubber band tied to the arrow bow.,-0.9692,-0.9874,0.0182
+Q_124,The knight sharpened the sword with the sponge wiping the sword whetstone.,-0.9468,-1.0,0.0532
+Q_125,The astronomer cleaned the lens with the coffee filter blocking the lens cloth.,0.9321,0.9615,0.0294
+Q_126,The thief picked the lock with the plastic comb attached to the lock pick.,-0.9692,-0.9889,0.0197
+Q_127,The soldier deflected the bullet with the wooden plank holding the bullet shield.,0.9683,1.0,0.0317
+Q_128,The hacker bypassed the terminal with the gaming controller wired to the terminal drive.,0.9932,0.9918,0.0014
+Q_129,The engineer bypassed the circuit with the copper wire coiled around the circuit fuse.,-0.9766,-0.9795,0.0029
+Q_130,The hostage slipped the knot with the broken nail hidden under the knot knife.,0.9248,0.9512,0.0264
+Q_131,The scout signaled the camp with the mirrored glass held before the camp flashlight.,-0.9717,-0.9799,0.0082
+Q_132,The burglar shattered the case with the soft jacket wrapped around the case hammer.,-0.9121,-0.9416,0.0295
+Q_133,The jeweler cut the diamond with the glass shard glued to the diamond saw.,-0.9722,-0.9849,0.0127
+Q_134,The assassin poisoned the drink with the dirty rag hiding the drink vial.,0.9688,1.0,0.0312
+Q_135,The firefighter breached the door with the heavy brick swung at the door axe.,-0.9492,-0.9529,0.0037
+Q_136,The surgeon probed the wound with the plastic peg held near the wound retractor.,0.9346,0.9426,0.008
+Q_137,The thief picked the padlock with the iron wire taped to the padlock pick.,-0.9678,-0.9889,0.0211
+Q_138,The fencer parried the foil with the leather glove gripping the foil guard.,-0.9736,-0.994,0.0204
+Q_139,The welder joined the seam with the heated wire touching the seam torch.,0.9844,1.0,0.0156
+Q_140,The diver explored the wreck with the plastic stick tied to the wreck light.,-0.8984,-0.9411,0.0427
+Q_141,The pilot steered the ship with the wooden spoon taped to the ship wheel.,-0.9727,-0.9884,0.0157
+Q_142,The driver stopped the car with the rubber boot pressing the car brake.,0.9756,1.0,0.0244
+Q_143,The sniper shot the target with the glass bottle covering the target scope.,-0.9434,-1.0,0.0566
+Q_144,The photographer captured the bird with the plastic cup blocking the bird lens.,-0.9082,-0.9494,0.0412
+Q_145,The climber scaled the wall with the cotton rope tied to the wall hook.,-0.9678,-0.9854,0.0176
+Q_146,The fisherman caught the bass with the metal clip holding the bass lure.,-0.958,-1.0,0.042
+Q_147,The writer typed the story with the wooden block hitting the story keyboard.,0.9844,0.9985,0.0141
+Q_148,The artist painted the portrait with the cotton swab touching the portrait brush.,0.9849,1.0,0.0151
+Q_149,The camper lit the fire with the dry leaf shielding the fire match.,-0.9746,-0.9955,0.0209
+Q_150,The butcher carved the turkey with the dull coin scraping the turkey knife.,-0.9824,-0.9886,0.0062

@@ -1,0 +1,4 @@
+Metric / Pipeline State,Top-1 Parsing Accuracy,Relative Error,QEM Accuracy Restored
+Classical SOTA Baseline (BGE),54.00%,-,-
+Unmitigated QPU (Raw Hardware Noise),74.00%,26.00%,-
+Mitigated QPU (TREX Layer Applied),76.67%,23.33%,+2.67%

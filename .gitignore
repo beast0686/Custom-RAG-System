@@ -1,4 +1,6 @@
 .env
 .venv
 .idea
-/Quantum/.ipynb_checkpoints/
+/Quantum Research/.ipynb_checkpoints/
+.ipynb_checkpoints
+
